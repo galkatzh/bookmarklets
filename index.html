@@ -1,0 +1,84 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookmarklets</title>
+<style>
+  :root {
+    color-scheme: light dark;
+    --bg: #f6f8fc; --card: #fff; --border: #e0e3e7; --text: #1b2230; --muted: #5f6878; --accent: #0b57d0; --chip: #eef2f8;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root { --bg: #0b1320; --card: #121d2e; --border: #24364c; --text: #e5edf7; --muted: #9aabbf; --accent: #7cb3ff; --chip: #1a2a40; }
+  }
+  * { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--text); line-height: 1.55; }
+  main { width: min(760px, 100%); margin: 0 auto; padding: 48px 16px 64px; }
+  h1 { margin: 0 0 8px; font-size: clamp(28px, 6vw, 40px); letter-spacing: -.02em; }
+  .lead { margin: 0 0 32px; color: var(--muted); }
+  ul { list-style: none; margin: 0; padding: 0; display: grid; gap: 16px; }
+  li { background: var(--card); border: 1px solid var(--border); border-radius: 14px; padding: 20px 22px; }
+  h2 { margin: 0 0 6px; font-size: 20px; }
+  h2 a { color: inherit; text-decoration: none; }
+  h2 a:hover { color: var(--accent); }
+  li p { margin: 0 0 12px; }
+  .meta { display: grid; gap: 4px; margin: 0 0 14px; font-size: 13px; color: var(--muted); }
+  .meta div { display: flex; gap: 6px; }
+  .meta dt { flex: none; font-weight: 700; }
+  .meta dt::after { content: ":"; }
+  .meta dd { margin: 0; }
+  .install { display: inline-block; font-weight: 700; color: var(--accent); text-decoration: none; }
+  .install:hover { text-decoration: underline; }
+  code { background: var(--chip); border-radius: 4px; padding: 1px 5px; font-size: .9em; white-space: nowrap; }
+  footer { margin-top: 40px; font-size: 13px; color: var(--muted); }
+  footer a { color: var(--accent); }
+</style>
+</head>
+<body>
+<main>
+  <h1>Bookmarklets</h1>
+  <p class="lead">Small tools that live in your bookmarks bar and run on the page you're viewing. Open one to get its install button and instructions.</p>
+
+  <!--
+    To add a bookmarklet:
+      1. Put its installer page (a self-contained .html file with a drag-to-bookmarks link) in this folder.
+      2. Copy one <li> block below and update the link, title, description, "Works on" and "Data" fields.
+  -->
+  <ul>
+    <li>
+      <h2><a href="chatgpt-tree-explorer.html">🌳 ChatGPT Tree Explorer</a></h2>
+      <p>Adds a side panel to a ChatGPT conversation that shows every branch created by edits and regenerations. Preview nearby messages, jump between branch endings, and export a branch-aware HTML copy of the whole conversation.</p>
+      <dl class="meta">
+        <div><dt>Works on</dt><dd><code>chatgpt.com</code></dd></div>
+        <div><dt>Data</dt><dd>Stays in your browser; reads the conversation from ChatGPT's own endpoint</dd></div>
+      </dl>
+      <a class="install" href="chatgpt-tree-explorer.html">Install →</a>
+    </li>
+
+    <li>
+      <h2><a href="gmail-latex-bookmarklet.html">∑ Gmail LaTeX</a></h2>
+      <p>Turns LaTeX in a Gmail draft into equation images. Write formulas between <code>$…$</code>, <code>$$…$$</code>, <code>\(…\)</code> or <code>\[…\]</code> and click the bookmark, or select plain LaTeX to convert only that. You can set a custom preamble.</p>
+      <dl class="meta">
+        <div><dt>Works on</dt><dd>Gmail compose window</dd></div>
+        <div><dt>Data</dt><dd>Formula source is sent to <code>latex.codecogs.com</code> for rendering</dd></div>
+      </dl>
+      <a class="install" href="gmail-latex-bookmarklet.html">Install →</a>
+    </li>
+
+    <li>
+      <h2><a href="pick-link-summary-bookmarklet.html">🔗 Pick a link, get a summary</a></h2>
+      <p>Click the bookmark, then click any link on the page to get a five-bullet summary of where it leads, without opening it. Choose “This page” to summarize the page you're on instead. Press Escape to cancel.</p>
+      <dl class="meta">
+        <div><dt>Works on</dt><dd>Any web page</dd></div>
+        <div><dt>Data</dt><dd>Page text is sent to <code>ch.at</code>; links to other sites go through Jina Reader. Don't use it on private pages.</dd></div>
+      </dl>
+      <a class="install" href="pick-link-summary-bookmarklet.html">Install →</a>
+    </li>
+  </ul>
+
+  <footer>Source: <a href="https://github.com/galkatzh/bookmarklets">github.com/galkatzh/bookmarklets</a></footer>
+</main>
+</body>
+</html>
