@@ -8,35 +8,22 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bookmarklets</title>
+<link rel="stylesheet" href="style.css">
 <style>
-  :root {
-    color-scheme: light dark;
-    --bg: #faf6ef; --text: #2e2520; --muted: #85766a; --rule: #e7ddcf; --accent: #b5532b;
-    font-family: "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif;
-  }
-  @media (prefers-color-scheme: dark) {
-    :root { --bg: #1d1814; --text: #ede3d6; --muted: #a39282; --rule: #3a3029; --accent: #e3905f; }
-  }
-  * { box-sizing: border-box; }
-  body { margin: 0; background: var(--bg); color: var(--text); font-size: 18px; line-height: 1.6; }
-  main { width: min(640px, 100%); margin: 0 auto; padding: 72px 16px 64px; }
-  h1 { margin: 0 0 8px; font-size: 34px; font-weight: 400; letter-spacing: -.01em; }
-  .lead { margin: 0 0 40px; color: var(--muted); }
-  ul { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
-  li { padding: 28px 0; border-bottom: 1px solid var(--rule); }
-  h2 { margin: 0 0 6px; font-size: 22px; font-weight: 400; }
+  #list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+  #list li { margin: 0; padding: 28px 0; border-bottom: 1px solid var(--rule); }
+  #list p { margin: 0 0 12px; }
   h2 a { color: inherit; text-decoration: none; }
   h2 a:hover { color: var(--accent); }
-  li p { margin: 0 0 12px; }
   .meta { margin: 0 0 12px; font-size: 15px; color: var(--muted); }
   .meta div { display: flex; gap: 8px; }
   .meta dt { flex: none; font-style: italic; }
   .meta dd { margin: 0; }
-  .install { color: var(--accent); font-size: 15px; text-decoration: none; }
-  .install:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .install { font-size: 15px; text-decoration: none; }
+  .install:hover { text-decoration: underline; }
   .status { color: var(--muted); }
   footer { margin-top: 40px; font-size: 15px; color: var(--muted); }
-  footer a { color: inherit; text-underline-offset: 3px; }
+  footer a { color: inherit; }
 </style>
 </head>
 <body>
