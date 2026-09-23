@@ -34,7 +34,7 @@
 
   <p id="status" class="status" role="status">Loading…</p>
   <ul id="list"></ul>
-  <p id="download" class="download" hidden><a download="bookmarklets.html">Download all as a bookmarks file</a>. Import it from your browser's bookmark manager to add every bookmarklet at once, each with its own icon. In Firefox they go straight onto the bookmarks toolbar; other browsers may put them in a folder and keep their generic icon.</p>
+  <p id="download" class="download" hidden><a download="bookmarklets.html">Download all as a bookmarks file</a>. Import it from your browser's bookmark manager to add every bookmarklet at once, each with its own icon. They may arrive in a folder; if so, drag them onto your bookmarks toolbar. Some browsers keep their generic icon.</p>
   <noscript><p>This list needs JavaScript. The installers are in the <a href="https://github.com/galkatzh/bookmarklets">repository</a>.</p></noscript>
 
   <footer>Source: <a href="https://github.com/galkatzh/bookmarklets">github.com/galkatzh/bookmarklets</a></footer>
@@ -115,7 +115,8 @@
       '<TITLE>Bookmarks</TITLE>',
       '<H1>Bookmarks</H1>',
       '<DL><p>',
-      // Firefox puts the contents of a folder marked PERSONAL_TOOLBAR_FOLDER straight onto the toolbar.
+      // PERSONAL_TOOLBAR_FOLDER marks this folder as the bookmarks toolbar. Firefox maps it to the toolbar
+      // when restoring a full backup; a regular import may still file it as a folder.
       '    <DT><H3 PERSONAL_TOOLBAR_FOLDER="true">Bookmarks Toolbar</H3>',
       '    <DL><p>',
       ...entries,
