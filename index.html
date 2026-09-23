@@ -24,6 +24,7 @@
   .status { color: var(--muted); }
   footer { margin-top: 40px; font-size: 15px; color: var(--muted); }
   footer a { color: inherit; }
+  .download { margin: 24px 0 0; font-size: 15px; color: var(--muted); }
 </style>
 </head>
 <body>
@@ -33,6 +34,7 @@
 
   <p id="status" class="status" role="status">Loading…</p>
   <ul id="list"></ul>
+  <p id="download" class="download" hidden><a download="bookmarklets.html">Download all as a bookmarks file</a>. Import it from your browser's bookmark manager to add every bookmarklet at once, each with its own icon. Firefox should show the icons; other browsers may keep their generic one.</p>
   <noscript><p>This list needs JavaScript. The installers are in the <a href="https://github.com/galkatzh/bookmarklets">repository</a>.</p></noscript>
 
   <footer>Source: <a href="https://github.com/galkatzh/bookmarklets">github.com/galkatzh/bookmarklets</a></footer>
@@ -53,8 +55,13 @@
     const meta = name => doc.querySelector(`meta[name="${name}"]`)?.content.trim() || '';
     const name = meta('bookmarklet:name');
     if (!name) return null;
+    const button = doc.querySelector('a.bookmarklet');
+    const code = button?.getAttribute('href') || '';
+    if (!code.startsWith('javascript:')) console.warn(url + ': no a.bookmarklet with a javascript: href; left out of the bookmarks file.');
     return {
       url, name,
+      label: button?.textContent.trim() || name,
+      code: code.startsWith('javascript:') ? code : '',
       description: meta('description'),
       worksOn: meta('bookmarklet:works-on'),
       data: meta('bookmarklet:data'),
@@ -78,6 +85,45 @@
       el('a', { className: 'install', href: b.url, textContent: 'Install →' }));
   }
 
+  // A 32×32 monogram in the site's accent color, used as the bookmark's icon.
+  function monogram(name) {
+    const canvas = Object.assign(document.createElement('canvas'), { width: 32, height: 32 });
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#b5532b';
+    ctx.beginPath();
+    ctx.roundRect(0, 0, 32, 32, 6);
+    ctx.fill();
+    ctx.fillStyle = '#faf6ef';
+    ctx.font = '22px "Iowan Old Style", "Palatino Linotype", Palatino, Georgia, serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(name.trim().charAt(0).toUpperCase(), 16, 17);
+    return canvas.toDataURL('image/png');
+  }
+
+  // Netscape bookmark file format, which browsers import from their bookmark manager.
+  function bookmarksFile(installers) {
+    const escapeHtml = text => text.replace(/[&<>"]/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' })[c]);
+    // javascript: URLs are percent-decoded before they run, so percent-encoding these characters
+    // keeps the code identical while keeping each bookmark on one line with no HTML escaping.
+    const escapeUrl = url => url.replace(/[\n\r"<>&]/g, c => '%' + c.charCodeAt(0).toString(16).toUpperCase().padStart(2, '0'));
+    const entries = installers.filter(b => b.code).map(b =>
+      `        <DT><A HREF="${escapeUrl(b.code)}" ICON="${monogram(b.name)}">${escapeHtml(b.label)}</A>`);
+    return [
+      '<!DOCTYPE NETSCAPE-Bookmark-file-1>',
+      '<META HTTP-EQUIV="Content-Type" CONTENT="text/html; charset=UTF-8">',
+      '<TITLE>Bookmarks</TITLE>',
+      '<H1>Bookmarks</H1>',
+      '<DL><p>',
+      '    <DT><H3>Bookmarklets</H3>',
+      '    <DL><p>',
+      ...entries,
+      '    </DL><p>',
+      '</DL><p>',
+      '',
+    ].join('\n');
+  }
+
   async function main() {
     let paths;
     try {
@@ -93,6 +139,11 @@
       .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name));
     list.append(...installers.map(card));
+    if (installers.some(b => b.code)) {
+      const download = document.getElementById('download');
+      download.querySelector('a').href = URL.createObjectURL(new Blob([bookmarksFile(installers)], { type: 'text/html' }));
+      download.hidden = false;
+    }
     if (installers.length) status.remove();
     else status.textContent = 'No bookmarklets found.';
   }

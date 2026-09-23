@@ -54,6 +54,18 @@ the installer's `<head>` and use this structure for the body:
 
 Page-specific rules can go in a small `<style>` block after the stylesheet link.
 
+The drag button's `href` must hold the full `javascript:` URL in the HTML itself, not one set by a
+script. The index reads it from there to build the bookmarks file.
+
+## Bookmarks file
+
+The index offers a "Download all as a bookmarks file" link. It builds a standard bookmarks file (the
+format browsers import from their bookmark manager) with every bookmarklet in a "Bookmarklets"
+folder. Each bookmark is named after its drag button's label and gets an icon: the first letter of
+`bookmarklet:name` on a terracotta square. Browsers give bookmarklets dragged to the bar a generic
+icon, but an imported file can carry its own. Firefox should show these icons; other browsers may
+ignore them.
+
 ## How the index finds installers
 
 GitHub Pages builds this site with Jekyll. The front matter at the top of `index.html` makes Jekyll
