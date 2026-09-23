@@ -1,3 +1,7 @@
+---
+# Front matter (even empty) makes GitHub Pages run this file through Jekyll,
+# which fills in the list of HTML files below. See README.md.
+---
 <!doctype html>
 <html lang="en">
 <head>
@@ -31,7 +35,7 @@
   .meta dd { margin: 0; }
   .install { display: inline-block; font-weight: 700; color: var(--accent); text-decoration: none; }
   .install:hover { text-decoration: underline; }
-  code { background: var(--chip); border-radius: 4px; padding: 1px 5px; font-size: .9em; white-space: nowrap; }
+  .status { color: var(--muted); }
   footer { margin-top: 40px; font-size: 13px; color: var(--muted); }
   footer a { color: var(--accent); }
 </style>
@@ -41,44 +45,74 @@
   <h1>Bookmarklets</h1>
   <p class="lead">Small tools that live in your bookmarks bar and run on the page you're viewing. Open one to get its install button and instructions.</p>
 
-  <!--
-    To add a bookmarklet:
-      1. Put its installer page (a self-contained .html file with a drag-to-bookmarks link) in this folder.
-      2. Copy one <li> block below and update the link, title, description, "Works on" and "Data" fields.
-  -->
-  <ul>
-    <li>
-      <h2><a href="chatgpt-tree-explorer.html">🌳 ChatGPT Tree Explorer</a></h2>
-      <p>Adds a side panel to a ChatGPT conversation that shows every branch created by edits and regenerations. Preview nearby messages, jump between branch endings, and export a branch-aware HTML copy of the whole conversation.</p>
-      <dl class="meta">
-        <div><dt>Works on</dt><dd><code>chatgpt.com</code></dd></div>
-        <div><dt>Data</dt><dd>Stays in your browser; reads the conversation from ChatGPT's own endpoint</dd></div>
-      </dl>
-      <a class="install" href="chatgpt-tree-explorer.html">Install →</a>
-    </li>
-
-    <li>
-      <h2><a href="gmail-latex-bookmarklet.html">∑ Gmail LaTeX</a></h2>
-      <p>Turns LaTeX in a Gmail draft into equation images. Write formulas between <code>$…$</code>, <code>$$…$$</code>, <code>\(…\)</code> or <code>\[…\]</code> and click the bookmark, or select plain LaTeX to convert only that. You can set a custom preamble.</p>
-      <dl class="meta">
-        <div><dt>Works on</dt><dd>Gmail compose window</dd></div>
-        <div><dt>Data</dt><dd>Formula source is sent to <code>latex.codecogs.com</code> for rendering</dd></div>
-      </dl>
-      <a class="install" href="gmail-latex-bookmarklet.html">Install →</a>
-    </li>
-
-    <li>
-      <h2><a href="pick-link-summary-bookmarklet.html">🔗 Pick a link, get a summary</a></h2>
-      <p>Click the bookmark, then click any link on the page to get a five-bullet summary of where it leads, without opening it. Choose “This page” to summarize the page you're on instead. Press Escape to cancel.</p>
-      <dl class="meta">
-        <div><dt>Works on</dt><dd>Any web page</dd></div>
-        <div><dt>Data</dt><dd>Page text is sent to <code>ch.at</code>; links to other sites go through Jina Reader. Don't use it on private pages.</dd></div>
-      </dl>
-      <a class="install" href="pick-link-summary-bookmarklet.html">Install →</a>
-    </li>
-  </ul>
+  <p id="status" class="status" role="status">Loading…</p>
+  <ul id="list"></ul>
+  <noscript><p>This list needs JavaScript. The installers are in the <a href="https://github.com/galkatzh/bookmarklets">repository</a>.</p></noscript>
 
   <footer>Source: <a href="https://github.com/galkatzh/bookmarklets">github.com/galkatzh/bookmarklets</a></footer>
 </main>
+
+<!-- Every .html file in the site, filled in by Jekyll when GitHub Pages builds the site. -->
+<script id="html-files" type="application/json">{{ site.static_files | where: "extname", ".html" | map: "path" | jsonify }}</script>
+<script>
+  const list = document.getElementById('list');
+  const status = document.getElementById('status');
+
+  // An installer is any HTML page with a <meta name="bookmarklet:name">.
+  async function readInstaller(path) {
+    const url = path.replace(/^\//, '');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(url + ': ' + response.status);
+    const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+    const meta = name => doc.querySelector(`meta[name="${name}"]`)?.content.trim() || '';
+    const name = meta('bookmarklet:name');
+    if (!name) return null;
+    return {
+      url, name,
+      icon: meta('bookmarklet:icon'),
+      description: meta('description'),
+      worksOn: meta('bookmarklet:works-on'),
+      data: meta('bookmarklet:data'),
+    };
+  }
+
+  function el(tag, props = {}, ...children) {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children.filter(Boolean));
+    return node;
+  }
+
+  function card(b) {
+    const details = [['Works on', b.worksOn], ['Data', b.data]]
+      .filter(([, value]) => value)
+      .map(([label, value]) => el('div', {}, el('dt', { textContent: label }), el('dd', { textContent: value })));
+    return el('li', {},
+      el('h2', {}, el('a', { href: b.url, textContent: (b.icon ? b.icon + ' ' : '') + b.name })),
+      b.description && el('p', { textContent: b.description }),
+      details.length && el('dl', { className: 'meta' }, ...details),
+      el('a', { className: 'install', href: b.url, textContent: 'Install →' }));
+  }
+
+  async function main() {
+    let paths;
+    try {
+      paths = JSON.parse(document.getElementById('html-files').textContent);
+    } catch {
+      status.textContent = 'The bookmarklet list is built by GitHub Pages. To preview locally, run "jekyll serve" (see README.md).';
+      return;
+    }
+    const results = await Promise.allSettled(paths.map(readInstaller));
+    for (const r of results) if (r.status === 'rejected') console.warn('Skipped installer:', r.reason);
+    const installers = results
+      .map(r => r.status === 'fulfilled' && r.value)
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    list.append(...installers.map(card));
+    if (installers.length) status.remove();
+    else status.textContent = 'No bookmarklets found.';
+  }
+
+  main();
+</script>
 </body>
 </html>
