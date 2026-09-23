@@ -1,0 +1,135 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pick a link · ch.at summary bookmarklet</title>
+<style>
+  body { max-width: 44rem; margin: 3rem auto; padding: 0 1.25rem; font: 17px/1.6 system-ui, sans-serif; color: #182234; }
+  h1 { line-height: 1.2; }
+  .bookmark { display: inline-block; padding: .65rem 1rem; border-radius: .6rem; background: #174ea6; color: white; font-weight: 700; text-decoration: none; }
+  .note { background: #f1f5fa; border-radius: .6rem; padding: 1rem; }
+  code { font-size: .9em; }
+</style>
+<h1>Pick a link, get a summary</h1>
+<p>Open this HTML file in your browser, then drag this link to your bookmarks bar: <a class="bookmark" id="bookmark" href="javascript:(function () { if (document.getElementById('chat-summary-picker')) return; const css = 'position:fixed;z-index:2147483647;background:#172337;color:#fff;font:14px/1.45 system-ui,sans-serif;border:0;border-radius:10px;box-shadow:0 8px 32px #0006;'; const banner = document.createElement('div'); banner.id = 'chat-summary-picker'; banner.style.cssText = css + 'top:12px;right:12px;max-width:min(420px,calc(100vw - 24px));padding:12px;'; const hint = document.createElement('span'); hint.textContent = 'Click a link to summarize · Esc cancels'; const thisPage = document.createElement('button'); thisPage.textContent = 'This page'; const cancel = document.createElement('button'); cancel.textContent = 'Cancel'; for (const button of [thisPage, cancel]) { button.style.cssText = 'margin-left:8px;padding:5px 8px;cursor:pointer;border-radius:5px;border:0;'; } banner.append(hint, thisPage, cancel); (document.body || document.documentElement).append(banner); function stop() { document.removeEventListener('click', onClick, true); document.removeEventListener('keydown', onKey, true); banner.remove(); } function onKey(event) { if (event.key === 'Escape') stop(); } cancel.addEventListener('click', stop); thisPage.addEventListener('click', () =&gt; { stop(); summarize(location.href, true); }); document.addEventListener('click', onClick, true); document.addEventListener('keydown', onKey, true); function onClick(event) { if (banner.contains(event.target)) return; const anchor = event.composedPath().find(el =&gt; el &amp;&amp; el.tagName &amp;&amp; el.tagName.toLowerCase() === 'a'); if (!anchor) return; const href = anchor.href &amp;&amp; typeof anchor.href === 'string' ? anchor.href : anchor.getAttribute('href'); if (!href) return; event.preventDefault(); event.stopImmediatePropagation(); stop(); summarize(href, false); } function markdownFrom(doc) { const root = (doc.querySelector('article, main, [role=&quot;main&quot;]') || doc.body).cloneNode(true); root.querySelectorAll('script,style,noscript,nav,aside,footer,header,form,button,svg,iframe,[hidden],[aria-hidden=&quot;true&quot;],[data-chat-summary-ui]').forEach(el =&gt; el.remove()); const compact = value =&gt; value.replace(/\s+/g, ' ').trim(); function walk(node, depth = 0) { if (node.nodeType === 3) return node.nodeValue.replace(/\s+/g, ' '); if (node.nodeType !== 1) return ''; const tag = node.tagName.toLowerCase(); if (tag === 'br') return '\n'; if (tag === 'pre') return '\n\n```\n' + node.textContent.trim() + '\n```\n\n'; if (tag === 'img') return node.getAttribute('alt') ? ' [Image: ' + compact(node.getAttribute('alt')) + '] ' : ''; let content = Array.from(node.childNodes, child =&gt; walk(child, depth + (tag === 'ul' || tag === 'ol' ? 1 : 0))).join(''); if (/^h[1-6]$/.test(tag)) return '\n\n' + '#'.repeat(Number(tag[1])) + ' ' + compact(content) + '\n\n'; if (tag === 'p' || tag === 'blockquote') return '\n\n' + (tag === 'blockquote' ? '&gt; ' : '') + compact(content) + '\n\n'; if (tag === 'li') return '\n' + '  '.repeat(Math.max(0, depth - 1)) + '- ' + compact(content); if (tag === 'strong' || tag === 'b') return '**' + content.trim() + '**'; if (tag === 'em' || tag === 'i') return '*' + content.trim() + '*'; if (tag === 'code') return '`' + content.trim() + '`'; if (tag === 'a') return compact(content); if (tag === 'hr') return '\n\n---\n\n'; if (tag === 'div' || tag === 'section' || tag === 'article' || tag === 'main') return '\n' + content + '\n'; return content; } return ((doc.title ? '# ' + doc.title + '\n\n' : '') + walk(root)) .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim(); } async function summarize(href, current) { const box = document.createElement('div'); box.dataset.chatSummaryUi = ''; box.style.cssText = css + 'top:12px;right:12px;width:min(460px,calc(100vw - 24px));max-height:80vh;overflow:auto;padding:14px;white-space:pre-wrap;'; const close = document.createElement('button'); close.textContent = 'Close'; close.style.cssText = 'float:right;cursor:pointer;margin-left:12px;'; close.addEventListener('click', () =&gt; box.remove()); const message = document.createElement('div'); message.textContent = 'Reading page…'; box.append(close, message); document.body.append(box); try { const target = new URL(href, location.href); if (!['http:', 'https:'].includes(target.protocol)) throw Error('Choose an HTTP or HTTPS web page.'); let markdown; if (current) { markdown = markdownFrom(document); } else if (target.origin === location.origin) { const page = await fetch(target.href, { credentials: 'same-origin' }); if (!page.ok) throw Error('Page returned HTTP ' + page.status); if (!page.headers.get('content-type')?.includes('text/html')) throw Error('This link is not an HTML page.'); markdown = markdownFrom(new DOMParser().parseFromString(await page.text(), 'text/html')); } else { message.textContent = 'Converting linked page to Markdown with Jina Reader…'; const page = await fetch('https://r.jina.ai/' + target.href, { credentials: 'omit' }); if (!page.ok) throw Error('Reader returned HTTP ' + page.status); markdown = await page.text(); } if (!markdown || markdown.trim().length &lt; 80) throw Error('Could not extract enough page text.'); const excerpt = markdown.slice(0, 18000); message.textContent = 'Summarizing extracted text with ch.at…'; const reply = await fetch('https://ch.at/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: 'Summarize this page in five concise bullets. Use only the supplied Markdown. If it is incomplete, say so.\nURL: ' + target.href + '\n\n' + excerpt }] }) }); if (!reply.ok) throw Error('ch.at returned HTTP ' + reply.status); const json = await reply.json(); message.textContent = json.choices?.[0]?.message?.content || 'No summary returned.'; if (markdown.length &gt; excerpt.length) message.textContent += '\n\n(Only the beginning of this page was summarized.)'; } catch (error) { message.textContent = 'Could not summarize: ' + error.message + '\n\nIf the browser blocked access, open the link and run this bookmarklet there using “This page”.'; } } })()">Pick link → summarize</a></p>
+<p>On a web page, click the bookmarklet, then click the link you want summarized. You can also choose “This page” in the small banner. Press Escape to cancel.</p>
+<p class="note">Links on the current site are fetched by your browser and converted to a compact Markdown-style document. Links on other sites go through <a href="https://jina.ai/reader/">Jina Reader</a> for extraction and Markdown conversion. The extracted text is sent to <a href="https://ch.at/">ch.at</a>. Do not use it for private pages. Sites can block bookmarklets or the requests they make; on those sites, open the link and try the “This page” option.</p>
+<script>
+const runBookmarklet = function () {
+  if (document.getElementById('chat-summary-picker')) return;
+
+  const css = 'position:fixed;z-index:2147483647;background:#172337;color:#fff;font:14px/1.45 system-ui,sans-serif;border:0;border-radius:10px;box-shadow:0 8px 32px #0006;';
+  const banner = document.createElement('div');
+  banner.id = 'chat-summary-picker';
+  banner.style.cssText = css + 'top:12px;right:12px;max-width:min(420px,calc(100vw - 24px));padding:12px;';
+  const hint = document.createElement('span');
+  hint.textContent = 'Click a link to summarize · Esc cancels';
+  const thisPage = document.createElement('button');
+  thisPage.textContent = 'This page';
+  const cancel = document.createElement('button');
+  cancel.textContent = 'Cancel';
+  for (const button of [thisPage, cancel]) {
+    button.style.cssText = 'margin-left:8px;padding:5px 8px;cursor:pointer;border-radius:5px;border:0;';
+  }
+  banner.append(hint, thisPage, cancel);
+  (document.body || document.documentElement).append(banner);
+
+  function stop() {
+    document.removeEventListener('click', onClick, true);
+    document.removeEventListener('keydown', onKey, true);
+    banner.remove();
+  }
+  function onKey(event) { if (event.key === 'Escape') stop(); }
+  cancel.addEventListener('click', stop);
+  thisPage.addEventListener('click', () => { stop(); summarize(location.href, true); });
+  document.addEventListener('click', onClick, true);
+  document.addEventListener('keydown', onKey, true);
+
+  function onClick(event) {
+    if (banner.contains(event.target)) return;
+    const anchor = event.composedPath().find(el => el && el.tagName && el.tagName.toLowerCase() === 'a');
+    if (!anchor) return;
+    const href = anchor.href && typeof anchor.href === 'string' ? anchor.href : anchor.getAttribute('href');
+    if (!href) return;
+    event.preventDefault();
+    event.stopImmediatePropagation();
+    stop();
+    summarize(href, false);
+  }
+
+  function markdownFrom(doc) {
+    const root = (doc.querySelector('article, main, [role="main"]') || doc.body).cloneNode(true);
+    root.querySelectorAll('script,style,noscript,nav,aside,footer,header,form,button,svg,iframe,[hidden],[aria-hidden="true"],[data-chat-summary-ui]').forEach(el => el.remove());
+    const compact = value => value.replace(/\s+/g, ' ').trim();
+    function walk(node, depth = 0) {
+      if (node.nodeType === 3) return node.nodeValue.replace(/\s+/g, ' ');
+      if (node.nodeType !== 1) return '';
+      const tag = node.tagName.toLowerCase();
+      if (tag === 'br') return '\n';
+      if (tag === 'pre') return '\n\n```\n' + node.textContent.trim() + '\n```\n\n';
+      if (tag === 'img') return node.getAttribute('alt') ? ' [Image: ' + compact(node.getAttribute('alt')) + '] ' : '';
+      let content = Array.from(node.childNodes, child => walk(child, depth + (tag === 'ul' || tag === 'ol' ? 1 : 0))).join('');
+      if (/^h[1-6]$/.test(tag)) return '\n\n' + '#'.repeat(Number(tag[1])) + ' ' + compact(content) + '\n\n';
+      if (tag === 'p' || tag === 'blockquote') return '\n\n' + (tag === 'blockquote' ? '> ' : '') + compact(content) + '\n\n';
+      if (tag === 'li') return '\n' + '  '.repeat(Math.max(0, depth - 1)) + '- ' + compact(content);
+      if (tag === 'strong' || tag === 'b') return '**' + content.trim() + '**';
+      if (tag === 'em' || tag === 'i') return '*' + content.trim() + '*';
+      if (tag === 'code') return '`' + content.trim() + '`';
+      if (tag === 'a') return compact(content);
+      if (tag === 'hr') return '\n\n---\n\n';
+      if (tag === 'div' || tag === 'section' || tag === 'article' || tag === 'main') return '\n' + content + '\n';
+      return content;
+    }
+    return ((doc.title ? '# ' + doc.title + '\n\n' : '') + walk(root))
+      .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
+  }
+
+  async function summarize(href, current) {
+    const box = document.createElement('div');
+    box.dataset.chatSummaryUi = '';
+    box.style.cssText = css + 'top:12px;right:12px;width:min(460px,calc(100vw - 24px));max-height:80vh;overflow:auto;padding:14px;white-space:pre-wrap;';
+    const close = document.createElement('button');
+    close.textContent = 'Close';
+    close.style.cssText = 'float:right;cursor:pointer;margin-left:12px;';
+    close.addEventListener('click', () => box.remove());
+    const message = document.createElement('div');
+    message.textContent = 'Reading page…';
+    box.append(close, message);
+    document.body.append(box);
+    try {
+      const target = new URL(href, location.href);
+      if (!['http:', 'https:'].includes(target.protocol)) throw Error('Choose an HTTP or HTTPS web page.');
+      let markdown;
+      if (current) {
+        markdown = markdownFrom(document);
+      } else if (target.origin === location.origin) {
+        const page = await fetch(target.href, { credentials: 'same-origin' });
+        if (!page.ok) throw Error('Page returned HTTP ' + page.status);
+        if (!page.headers.get('content-type')?.includes('text/html')) throw Error('This link is not an HTML page.');
+        markdown = markdownFrom(new DOMParser().parseFromString(await page.text(), 'text/html'));
+      } else {
+        message.textContent = 'Converting linked page to Markdown with Jina Reader…';
+        const page = await fetch('https://r.jina.ai/' + target.href, { credentials: 'omit' });
+        if (!page.ok) throw Error('Reader returned HTTP ' + page.status);
+        markdown = await page.text();
+      }
+      if (!markdown || markdown.trim().length < 80) throw Error('Could not extract enough page text.');
+      const excerpt = markdown.slice(0, 18000);
+      message.textContent = 'Summarizing extracted text with ch.at…';
+      const reply = await fetch('https://ch.at/v1/chat/completions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ messages: [{ role: 'user', content:
+          'Summarize this page in five concise bullets. Use only the supplied Markdown. If it is incomplete, say so.\nURL: ' + target.href + '\n\n' + excerpt }] })
+      });
+      if (!reply.ok) throw Error('ch.at returned HTTP ' + reply.status);
+      const json = await reply.json();
+      message.textContent = json.choices?.[0]?.message?.content || 'No summary returned.';
+      if (markdown.length > excerpt.length) message.textContent += '\n\n(Only the beginning of this page was summarized.)';
+    } catch (error) {
+      message.textContent = 'Could not summarize: ' + error.message + '\n\nIf the browser blocked access, open the link and run this bookmarklet there using “This page”.';
+    }
+  }
+};
+</script>
+</html>
