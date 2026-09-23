@@ -1,0 +1,103 @@
+---
+# Front matter (even empty) makes GitHub Pages run this file through Jekyll,
+# which fills in the list of HTML files below. See README.md.
+---
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Bookmarklets</title>
+<link rel="stylesheet" href="style.css">
+<style>
+  #list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
+  #list li { margin: 0; padding: 28px 0; border-bottom: 1px solid var(--rule); }
+  #list p { margin: 0 0 12px; }
+  h2 a { color: inherit; text-decoration: none; }
+  h2 a:hover { color: var(--accent); }
+  .meta { margin: 0 0 12px; font-size: 15px; color: var(--muted); }
+  .meta div { display: flex; gap: 8px; }
+  .meta dt { flex: none; font-style: italic; }
+  .meta dd { margin: 0; }
+  .install { font-size: 15px; text-decoration: none; }
+  .install:hover { text-decoration: underline; }
+  .status { color: var(--muted); }
+  footer { margin-top: 40px; font-size: 15px; color: var(--muted); }
+  footer a { color: inherit; }
+</style>
+</head>
+<body>
+<main>
+  <h1>Bookmarklets</h1>
+  <p class="lead">Small tools that live in your bookmarks bar and run on the page you're viewing. Open one to get its install button and instructions.</p>
+
+  <p id="status" class="status" role="status">Loading…</p>
+  <ul id="list"></ul>
+  <noscript><p>This list needs JavaScript. The installers are in the <a href="https://github.com/galkatzh/bookmarklets">repository</a>.</p></noscript>
+
+  <footer>Source: <a href="https://github.com/galkatzh/bookmarklets">github.com/galkatzh/bookmarklets</a></footer>
+</main>
+
+<!-- Every .html file in the site, filled in by Jekyll when GitHub Pages builds the site. -->
+<script id="html-files" type="application/json">{{ site.static_files | where: "extname", ".html" | map: "path" | jsonify }}</script>
+<script>
+  const list = document.getElementById('list');
+  const status = document.getElementById('status');
+
+  // An installer is any HTML page with a <meta name="bookmarklet:name">.
+  async function readInstaller(path) {
+    const url = path.replace(/^\//, '');
+    const response = await fetch(url);
+    if (!response.ok) throw new Error(url + ': ' + response.status);
+    const doc = new DOMParser().parseFromString(await response.text(), 'text/html');
+    const meta = name => doc.querySelector(`meta[name="${name}"]`)?.content.trim() || '';
+    const name = meta('bookmarklet:name');
+    if (!name) return null;
+    return {
+      url, name,
+      description: meta('description'),
+      worksOn: meta('bookmarklet:works-on'),
+      data: meta('bookmarklet:data'),
+    };
+  }
+
+  function el(tag, props = {}, ...children) {
+    const node = Object.assign(document.createElement(tag), props);
+    node.append(...children.filter(Boolean));
+    return node;
+  }
+
+  function card(b) {
+    const details = [['Works on', b.worksOn], ['Data', b.data]]
+      .filter(([, value]) => value)
+      .map(([label, value]) => el('div', {}, el('dt', { textContent: label }), el('dd', { textContent: value })));
+    return el('li', {},
+      el('h2', {}, el('a', { href: b.url, textContent: b.name })),
+      b.description && el('p', { textContent: b.description }),
+      details.length && el('dl', { className: 'meta' }, ...details),
+      el('a', { className: 'install', href: b.url, textContent: 'Install →' }));
+  }
+
+  async function main() {
+    let paths;
+    try {
+      paths = JSON.parse(document.getElementById('html-files').textContent);
+    } catch {
+      status.textContent = 'The bookmarklet list is built by GitHub Pages. To preview locally, run "jekyll serve" (see README.md).';
+      return;
+    }
+    const results = await Promise.allSettled(paths.map(readInstaller));
+    for (const r of results) if (r.status === 'rejected') console.warn('Skipped installer:', r.reason);
+    const installers = results
+      .map(r => r.status === 'fulfilled' && r.value)
+      .filter(Boolean)
+      .sort((a, b) => a.name.localeCompare(b.name));
+    list.append(...installers.map(card));
+    if (installers.length) status.remove();
+    else status.textContent = 'No bookmarklets found.';
+  }
+
+  main();
+</script>
+</body>
+</html>

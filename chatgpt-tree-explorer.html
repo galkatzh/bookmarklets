@@ -4,39 +4,26 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Install ChatGPT Tree Explorer</title>
+<meta name="description" content="Adds a side panel to a ChatGPT conversation that shows every branch created by edits and regenerations. Preview nearby messages, jump between branch endings, and export a branch-aware HTML copy of the whole conversation.">
+<meta name="bookmarklet:name" content="ChatGPT Tree Explorer">
+<meta name="bookmarklet:works-on" content="chatgpt.com">
+<meta name="bookmarklet:data" content="Stays in your browser; reads the conversation from ChatGPT's own endpoint.">
+<link rel="stylesheet" href="style.css">
 <style>
-  :root { color-scheme: dark; font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; }
-  * { box-sizing: border-box; }
-  body { min-height: 100vh; margin: 0; display: grid; place-items: center; padding: 28px; background: radial-gradient(circle at 15% 10%, #1e3a5f 0, transparent 34%), #07111f; color: #e5edf7; }
-  main { width: min(720px, 100%); padding: clamp(26px, 5vw, 48px); border: 1px solid #24364c; border-radius: 24px; background: rgba(13, 25, 42, .94); box-shadow: 0 24px 70px rgba(0, 0, 0, .38); }
-  .eyebrow { margin: 0 0 10px; color: #6ee7b7; font-size: 12px; font-weight: 800; letter-spacing: .13em; text-transform: uppercase; }
-  h1 { margin: 0; font-size: clamp(29px, 6vw, 48px); line-height: 1.04; letter-spacing: -.035em; }
-  .lead { margin: 18px 0 28px; max-width: 58ch; color: #aebed0; font-size: 17px; line-height: 1.6; }
-  .install-zone { display: grid; gap: 13px; padding: 22px; border: 1px dashed #3d5876; border-radius: 16px; background: #091726; text-align: center; }
-  #install-link { display: inline-flex; justify-self: center; align-items: center; gap: 10px; padding: 13px 18px; border: 1px solid #7dd3fc; border-radius: 999px; background: linear-gradient(135deg, #0ea5e9, #2563eb); color: white; font-weight: 800; text-decoration: none; cursor: grab; box-shadow: 0 10px 28px rgba(14, 165, 233, .28); }
-  #install-link:active { cursor: grabbing; }
-  .drag-note { margin: 0; color: #8fa4bb; font-size: 13px; }
-  ol { margin: 28px 0 0; padding-left: 22px; color: #c5d2e1; line-height: 1.7; }
-  li + li { margin-top: 8px; }
-  .secondary { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 24px; }
-  button { padding: 9px 13px; border: 1px solid #344b66; border-radius: 9px; background: #14253a; color: #d8e4f1; font: inherit; font-size: 13px; cursor: pointer; }
-  button:hover { background: #1b3049; }
-  #status { min-height: 20px; margin: 11px 0 0; color: #6ee7b7; font-size: 13px; }
-  details { margin-top: 22px; color: #91a5bb; font-size: 13px; line-height: 1.55; }
-  summary { color: #b9c7d7; cursor: pointer; }
-  code { color: #bae6fd; }
+  .secondary { display: flex; flex-wrap: wrap; gap: 8px; }
+  #status { min-height: 1.6em; margin: 10px 0 0; color: var(--accent); font-size: 15px; }
   textarea { position: fixed; left: -10000px; top: -10000px; }
 </style>
 </head>
 <body>
 <main>
-  <p class="eyebrow">Bookmarklet installer</p>
+  <p class="back"><a href="./">← All bookmarklets</a></p>
   <h1>ChatGPT Tree Explorer</h1>
   <p class="lead">Explore conversation branches, preview nearby messages, jump between leaves, and export a branch-aware HTML copy—without installing an extension.</p>
 
-  <div class="install-zone">
-    <a id="install-link" href="#" draggable="true" title="Drag this button to your bookmarks bar">🌳 ChatGPT Tree Explorer</a>
-    <p class="drag-note">Drag the blue button to your browser’s bookmarks bar.</p>
+  <div class="install-box">
+    <a id="install-link" class="bookmarklet" href="#" draggable="true" title="Drag this button to your bookmarks bar">ChatGPT Tree</a>
+    <p class="hint">Drag this button to your bookmarks bar.</p>
   </div>
 
   <ol>
