@@ -13,7 +13,6 @@ Add an installer page to the root of the repo. Put these tags in its `<head>`:
 ```html
 <meta name="bookmarklet:name" content="Short name">
 <meta name="description" content="One or two sentences on what it does and how to use it.">
-<meta name="bookmarklet:icon" content="🔧">
 <meta name="bookmarklet:works-on" content="Which sites or pages it runs on">
 <meta name="bookmarklet:data" content="What, if anything, leaves the browser and where it goes">
 ```
@@ -22,7 +21,6 @@ Add an installer page to the root of the repo. Put these tags in its `<head>`:
 | --- | --- | --- |
 | `bookmarklet:name` | Yes. Pages without it are not listed. | Card title |
 | `description` | Recommended | Card text |
-| `bookmarklet:icon` | No | An emoji before the title |
 | `bookmarklet:works-on` | Recommended | "Works on" line |
 | `bookmarklet:data` | Recommended | "Data" line |
 

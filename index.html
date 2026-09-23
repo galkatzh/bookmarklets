@@ -55,7 +55,6 @@
     if (!name) return null;
     return {
       url, name,
-      icon: meta('bookmarklet:icon'),
       description: meta('description'),
       worksOn: meta('bookmarklet:works-on'),
       data: meta('bookmarklet:data'),
@@ -73,7 +72,7 @@
       .filter(([, value]) => value)
       .map(([label, value]) => el('div', {}, el('dt', { textContent: label }), el('dd', { textContent: value })));
     return el('li', {},
-      el('h2', {}, el('a', { href: b.url, textContent: (b.icon ? b.icon + ' ' : '') + b.name })),
+      el('h2', {}, el('a', { href: b.url, textContent: b.name })),
       b.description && el('p', { textContent: b.description }),
       details.length && el('dl', { className: 'meta' }, ...details),
       el('a', { className: 'install', href: b.url, textContent: 'Install →' }));
