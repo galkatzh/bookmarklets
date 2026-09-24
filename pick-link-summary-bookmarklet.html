@@ -3,35 +3,38 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Pick a link · ch.at summary bookmarklet</title>
-<meta name="description" content="Click the bookmark, then click any link on the page to get a five-bullet summary of where it leads, without opening it. Choose “This page” to summarize the page you’re on instead.">
+<meta name="description" content="Click the bookmark, then click any link on the page to get a five-bullet summary of where it leads, without opening it. Choose “This page” to summarize the page you’re on instead. On YouTube it summarizes videos from their transcripts.">
 <meta name="bookmarklet:name" content="Pick a link, get a summary">
-<meta name="bookmarklet:works-on" content="Any web page">
-<meta name="bookmarklet:data" content="Page text is sent to ch.at; links to other sites go through Jina Reader. Don't use it on private pages.">
+<meta name="bookmarklet:works-on" content="Any web page; YouTube videos on youtube.com">
+<meta name="bookmarklet:data" content="Page text and video transcripts are sent to ch.at; links to other sites go through Jina Reader. Don't use it on private pages.">
 <link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <main>
 <p class="back"><a href="./">← All bookmarklets</a></p>
 <h1>Pick a link, get a summary</h1>
-<p class="lead">Summarize where a link leads without opening it.</p>
+<p class="lead">Summarize where a link leads without opening it, or the YouTube video you’re watching.</p>
 <div class="install-box">
-  <a class="bookmarklet" id="bookmark" href="javascript:(function () { if (document.getElementById('chat-summary-picker')) return; const css = 'position:fixed;z-index:2147483647;background:#172337;color:#fff;font:14px/1.45 system-ui,sans-serif;border:0;border-radius:10px;box-shadow:0 8px 32px #0006;'; const banner = document.createElement('div'); banner.id = 'chat-summary-picker'; banner.style.cssText = css + 'top:12px;right:12px;max-width:min(420px,calc(100vw - 24px));padding:12px;'; const hint = document.createElement('span'); hint.textContent = 'Click a link to summarize · Esc cancels'; const thisPage = document.createElement('button'); thisPage.textContent = 'This page'; const cancel = document.createElement('button'); cancel.textContent = 'Cancel'; for (const button of [thisPage, cancel]) { button.style.cssText = 'margin-left:8px;padding:5px 8px;cursor:pointer;border-radius:5px;border:0;'; } banner.append(hint, thisPage, cancel); (document.body || document.documentElement).append(banner); function stop() { document.removeEventListener('click', onClick, true); document.removeEventListener('keydown', onKey, true); banner.remove(); } function onKey(event) { if (event.key === 'Escape') stop(); } cancel.addEventListener('click', stop); thisPage.addEventListener('click', () =&gt; { stop(); summarize(location.href, true); }); document.addEventListener('click', onClick, true); document.addEventListener('keydown', onKey, true); function onClick(event) { if (banner.contains(event.target)) return; const anchor = event.composedPath().find(el =&gt; el &amp;&amp; el.tagName &amp;&amp; el.tagName.toLowerCase() === 'a'); if (!anchor) return; const href = anchor.href &amp;&amp; typeof anchor.href === 'string' ? anchor.href : anchor.getAttribute('href'); if (!href) return; event.preventDefault(); event.stopImmediatePropagation(); stop(); summarize(href, false); } function markdownFrom(doc) { const root = (doc.querySelector('article, main, [role=&quot;main&quot;]') || doc.body).cloneNode(true); root.querySelectorAll('script,style,noscript,nav,aside,footer,header,form,button,svg,iframe,[hidden],[aria-hidden=&quot;true&quot;],[data-chat-summary-ui]').forEach(el =&gt; el.remove()); const compact = value =&gt; value.replace(/\s+/g, ' ').trim(); function walk(node, depth = 0) { if (node.nodeType === 3) return node.nodeValue.replace(/\s+/g, ' '); if (node.nodeType !== 1) return ''; const tag = node.tagName.toLowerCase(); if (tag === 'br') return '\n'; if (tag === 'pre') return '\n\n```\n' + node.textContent.trim() + '\n```\n\n'; if (tag === 'img') return node.getAttribute('alt') ? ' [Image: ' + compact(node.getAttribute('alt')) + '] ' : ''; let content = Array.from(node.childNodes, child =&gt; walk(child, depth + (tag === 'ul' || tag === 'ol' ? 1 : 0))).join(''); if (/^h[1-6]$/.test(tag)) return '\n\n' + '#'.repeat(Number(tag[1])) + ' ' + compact(content) + '\n\n'; if (tag === 'p' || tag === 'blockquote') return '\n\n' + (tag === 'blockquote' ? '&gt; ' : '') + compact(content) + '\n\n'; if (tag === 'li') return '\n' + '  '.repeat(Math.max(0, depth - 1)) + '- ' + compact(content); if (tag === 'strong' || tag === 'b') return '**' + content.trim() + '**'; if (tag === 'em' || tag === 'i') return '*' + content.trim() + '*'; if (tag === 'code') return '`' + content.trim() + '`'; if (tag === 'a') return compact(content); if (tag === 'hr') return '\n\n---\n\n'; if (tag === 'div' || tag === 'section' || tag === 'article' || tag === 'main') return '\n' + content + '\n'; return content; } return ((doc.title ? '# ' + doc.title + '\n\n' : '') + walk(root)) .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim(); } async function summarize(href, current) { const box = document.createElement('div'); box.dataset.chatSummaryUi = ''; box.style.cssText = css + 'top:12px;right:12px;width:min(460px,calc(100vw - 24px));max-height:80vh;overflow:auto;padding:14px;white-space:pre-wrap;'; const close = document.createElement('button'); close.textContent = 'Close'; close.style.cssText = 'float:right;cursor:pointer;margin-left:12px;'; close.addEventListener('click', () =&gt; box.remove()); const message = document.createElement('div'); message.textContent = 'Reading page…'; box.append(close, message); document.body.append(box); try { const target = new URL(href, location.href); if (!['http:', 'https:'].includes(target.protocol)) throw Error('Choose an HTTP or HTTPS web page.'); let markdown; if (current) { markdown = markdownFrom(document); } else if (target.origin === location.origin) { const page = await fetch(target.href, { credentials: 'same-origin' }); if (!page.ok) throw Error('Page returned HTTP ' + page.status); if (!page.headers.get('content-type')?.includes('text/html')) throw Error('This link is not an HTML page.'); markdown = markdownFrom(new DOMParser().parseFromString(await page.text(), 'text/html')); } else { message.textContent = 'Converting linked page to Markdown with Jina Reader…'; const page = await fetch('https://r.jina.ai/' + target.href, { credentials: 'omit' }); if (!page.ok) throw Error('Reader returned HTTP ' + page.status); markdown = await page.text(); } if (!markdown || markdown.trim().length &lt; 80) throw Error('Could not extract enough page text.'); const excerpt = markdown.slice(0, 18000); message.textContent = 'Summarizing extracted text with ch.at…'; const reply = await fetch('https://ch.at/v1/chat/completions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ messages: [{ role: 'user', content: 'Summarize this page in five concise bullets. Use only the supplied Markdown. If it is incomplete, say so.\nURL: ' + target.href + '\n\n' + excerpt }] }) }); if (!reply.ok) throw Error('ch.at returned HTTP ' + reply.status); const json = await reply.json(); message.textContent = json.choices?.[0]?.message?.content || 'No summary returned.'; if (markdown.length &gt; excerpt.length) message.textContent += '\n\n(Only the beginning of this page was summarized.)'; } catch (error) { message.textContent = 'Could not summarize: ' + error.message + '\n\nIf the browser blocked access, open the link and run this bookmarklet there using “This page”.'; } } })()">Summarize</a>
+  <a class="bookmarklet" id="bookmark" href="javascript:(function%20()%20%7B%0A%20%20if%20(document.getElementById('chat-summary-picker'))%20return%3B%0A%0A%20%20const%20css%20%3D%20'position%3Afixed%3Bz-index%3A2147483647%3Bbackground%3A%23172337%3Bcolor%3A%23fff%3Bfont%3A14px%2F1.45%20system-ui%2Csans-serif%3Bborder%3A0%3Bborder-radius%3A10px%3Bbox-shadow%3A0%208px%2032px%20%230006%3B'%3B%0A%20%20const%20onYouTube%20%3D%20%2F(%5E%7C%5C.)youtube%5C.com%24%2F.test(location.hostname)%3B%0A%20%20const%20banner%20%3D%20document.createElement('div')%3B%0A%20%20banner.id%20%3D%20'chat-summary-picker'%3B%0A%20%20banner.style.cssText%20%3D%20css%20%2B%20'top%3A12px%3Bright%3A12px%3Bmax-width%3Amin(420px%2Ccalc(100vw%20-%2024px))%3Bpadding%3A12px%3B'%3B%0A%20%20const%20hint%20%3D%20document.createElement('span')%3B%0A%20%20hint.textContent%20%3D%20'Click%20a%20link%20to%20summarize%20%C2%B7%20Esc%20cancels'%3B%0A%20%20const%20thisPage%20%3D%20document.createElement('button')%3B%0A%20%20thisPage.textContent%20%3D%20youTubeId(location.href)%20%3F%20'This%20video'%20%3A%20'This%20page'%3B%0A%20%20const%20cancel%20%3D%20document.createElement('button')%3B%0A%20%20cancel.textContent%20%3D%20'Cancel'%3B%0A%20%20for%20(const%20button%20of%20%5BthisPage%2C%20cancel%5D)%20%7B%0A%20%20%20%20button.style.cssText%20%3D%20'margin-left%3A8px%3Bpadding%3A5px%208px%3Bcursor%3Apointer%3Bborder-radius%3A5px%3Bborder%3A0%3B'%3B%0A%20%20%7D%0A%20%20banner.append(hint%2C%20thisPage%2C%20cancel)%3B%0A%20%20(document.body%20%7C%7C%20document.documentElement).append(banner)%3B%0A%0A%20%20function%20stop()%20%7B%0A%20%20%20%20document.removeEventListener('click'%2C%20onClick%2C%20true)%3B%0A%20%20%20%20document.removeEventListener('keydown'%2C%20onKey%2C%20true)%3B%0A%20%20%20%20banner.remove()%3B%0A%20%20%7D%0A%20%20function%20onKey(event)%20%7B%20if%20(event.key%20%3D%3D%3D%20'Escape')%20stop()%3B%20%7D%0A%20%20cancel.addEventListener('click'%2C%20stop)%3B%0A%20%20thisPage.addEventListener('click'%2C%20()%20%3D%3E%20%7B%20stop()%3B%20summarize(location.href%2C%20true)%3B%20%7D)%3B%0A%20%20document.addEventListener('click'%2C%20onClick%2C%20true)%3B%0A%20%20document.addEventListener('keydown'%2C%20onKey%2C%20true)%3B%0A%0A%20%20function%20onClick(event)%20%7B%0A%20%20%20%20if%20(banner.contains(event.target))%20return%3B%0A%20%20%20%20const%20anchor%20%3D%20event.composedPath().find(el%20%3D%3E%20el%20%26%26%20el.tagName%20%26%26%20el.tagName.toLowerCase()%20%3D%3D%3D%20'a')%3B%0A%20%20%20%20if%20(!anchor)%20return%3B%0A%20%20%20%20const%20href%20%3D%20anchor.href%20%26%26%20typeof%20anchor.href%20%3D%3D%3D%20'string'%20%3F%20anchor.href%20%3A%20anchor.getAttribute('href')%3B%0A%20%20%20%20if%20(!href)%20return%3B%0A%20%20%20%20event.preventDefault()%3B%0A%20%20%20%20event.stopImmediatePropagation()%3B%0A%20%20%20%20stop()%3B%0A%20%20%20%20summarize(href%2C%20false)%3B%0A%20%20%7D%0A%0A%20%20function%20markdownFrom(doc)%20%7B%0A%20%20%20%20const%20root%20%3D%20(doc.querySelector('article%2C%20main%2C%20%5Brole%3D%22main%22%5D')%20%7C%7C%20doc.body).cloneNode(true)%3B%0A%20%20%20%20root.querySelectorAll('script%2Cstyle%2Cnoscript%2Cnav%2Caside%2Cfooter%2Cheader%2Cform%2Cbutton%2Csvg%2Ciframe%2C%5Bhidden%5D%2C%5Baria-hidden%3D%22true%22%5D%2C%5Bdata-chat-summary-ui%5D').forEach(el%20%3D%3E%20el.remove())%3B%0A%20%20%20%20const%20compact%20%3D%20value%20%3D%3E%20value.replace(%2F%5Cs%2B%2Fg%2C%20'%20').trim()%3B%0A%20%20%20%20function%20walk(node%2C%20depth%20%3D%200)%20%7B%0A%20%20%20%20%20%20if%20(node.nodeType%20%3D%3D%3D%203)%20return%20node.nodeValue.replace(%2F%5Cs%2B%2Fg%2C%20'%20')%3B%0A%20%20%20%20%20%20if%20(node.nodeType%20!%3D%3D%201)%20return%20''%3B%0A%20%20%20%20%20%20const%20tag%20%3D%20node.tagName.toLowerCase()%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'br')%20return%20'%5Cn'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'pre')%20return%20'%5Cn%5Cn%60%60%60%5Cn'%20%2B%20node.textContent.trim()%20%2B%20'%5Cn%60%60%60%5Cn%5Cn'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'img')%20return%20node.getAttribute('alt')%20%3F%20'%20%5BImage%3A%20'%20%2B%20compact(node.getAttribute('alt'))%20%2B%20'%5D%20'%20%3A%20''%3B%0A%20%20%20%20%20%20let%20content%20%3D%20Array.from(node.childNodes%2C%20child%20%3D%3E%20walk(child%2C%20depth%20%2B%20(tag%20%3D%3D%3D%20'ul'%20%7C%7C%20tag%20%3D%3D%3D%20'ol'%20%3F%201%20%3A%200))).join('')%3B%0A%20%20%20%20%20%20if%20(%2F%5Eh%5B1-6%5D%24%2F.test(tag))%20return%20'%5Cn%5Cn'%20%2B%20'%23'.repeat(Number(tag%5B1%5D))%20%2B%20'%20'%20%2B%20compact(content)%20%2B%20'%5Cn%5Cn'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'p'%20%7C%7C%20tag%20%3D%3D%3D%20'blockquote')%20return%20'%5Cn%5Cn'%20%2B%20(tag%20%3D%3D%3D%20'blockquote'%20%3F%20'%3E%20'%20%3A%20'')%20%2B%20compact(content)%20%2B%20'%5Cn%5Cn'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'li')%20return%20'%5Cn'%20%2B%20'%20%20'.repeat(Math.max(0%2C%20depth%20-%201))%20%2B%20'-%20'%20%2B%20compact(content)%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'strong'%20%7C%7C%20tag%20%3D%3D%3D%20'b')%20return%20'**'%20%2B%20content.trim()%20%2B%20'**'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'em'%20%7C%7C%20tag%20%3D%3D%3D%20'i')%20return%20'*'%20%2B%20content.trim()%20%2B%20'*'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'code')%20return%20'%60'%20%2B%20content.trim()%20%2B%20'%60'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'a')%20return%20compact(content)%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'hr')%20return%20'%5Cn%5Cn---%5Cn%5Cn'%3B%0A%20%20%20%20%20%20if%20(tag%20%3D%3D%3D%20'div'%20%7C%7C%20tag%20%3D%3D%3D%20'section'%20%7C%7C%20tag%20%3D%3D%3D%20'article'%20%7C%7C%20tag%20%3D%3D%3D%20'main')%20return%20'%5Cn'%20%2B%20content%20%2B%20'%5Cn'%3B%0A%20%20%20%20%20%20return%20content%3B%0A%20%20%20%20%7D%0A%20%20%20%20return%20((doc.title%20%3F%20'%23%20'%20%2B%20doc.title%20%2B%20'%5Cn%5Cn'%20%3A%20'')%20%2B%20walk(root))%0A%20%20%20%20%20%20.replace(%2F%5B%20%5Ct%5D%2B%5Cn%2Fg%2C%20'%5Cn').replace(%2F%5Cn%7B3%2C%7D%2Fg%2C%20'%5Cn%5Cn').trim()%3B%0A%20%20%7D%0A%0A%20%20%2F%2F%20The%2011-character%20video%20ID%20of%20a%20YouTube%20watch%2C%20Shorts%2C%20live%2C%20embed%20or%20youtu.be%20URL%2C%20or%20null.%0A%20%20function%20youTubeId(href)%20%7B%0A%20%20%20%20let%20url%3B%0A%20%20%20%20try%20%7B%20url%20%3D%20new%20URL(href%2C%20location.href)%3B%20%7D%20catch%20%7B%20return%20null%3B%20%7D%0A%20%20%20%20const%20host%20%3D%20url.hostname.replace(%2F%5E(www%7Cm%7Cmusic)%5C.%2F%2C%20'')%3B%0A%20%20%20%20let%20id%20%3D%20null%3B%0A%20%20%20%20if%20(host%20%3D%3D%3D%20'youtu.be')%20id%20%3D%20url.pathname.split('%2F')%5B1%5D%3B%0A%20%20%20%20else%20if%20(host%20%3D%3D%3D%20'youtube.com'%20%7C%7C%20host%20%3D%3D%3D%20'youtube-nocookie.com')%20%7B%0A%20%20%20%20%20%20id%20%3D%20url.pathname%20%3D%3D%3D%20'%2Fwatch'%20%3F%20url.searchParams.get('v')%0A%20%20%20%20%20%20%20%20%3A%20(url.pathname.match(%2F%5E%5C%2F(%3F%3Ashorts%7Clive%7Cembed%7Cv)%5C%2F(%5B%5E%2F%3F%23%5D%2B)%2F)%20%7C%7C%20%5B%5D)%5B1%5D%3B%0A%20%20%20%20%7D%0A%20%20%20%20return%20id%20%26%26%20%2F%5E%5B%5Cw-%5D%7B11%7D%24%2F.test(id)%20%3F%20id%20%3A%20null%3B%0A%20%20%7D%0A%0A%20%20%2F%2F%20Parses%20the%20JSON%20object%20literal%20that%20follows%20%60name%20%3D%60%20or%20%60name%3A%60%20in%20a%20page's%20source.%0A%20%20function%20jsonAfter(text%2C%20name)%20%7B%0A%20%20%20%20const%20match%20%3D%20new%20RegExp(name%20%2B%20'%5C%5Cs*%5B%3D%3A%5D%5C%5Cs*%5C%5C%7B').exec(text)%3B%0A%20%20%20%20if%20(!match)%20return%20null%3B%0A%20%20%20%20const%20start%20%3D%20match.index%20%2B%20match%5B0%5D.length%20-%201%3B%0A%20%20%20%20let%20depth%20%3D%200%2C%20inString%20%3D%20false%3B%0A%20%20%20%20for%20(let%20i%20%3D%20start%3B%20i%20%3C%20text.length%3B%20i%2B%2B)%20%7B%0A%20%20%20%20%20%20const%20c%20%3D%20text%5Bi%5D%3B%0A%20%20%20%20%20%20if%20(inString)%20%7B%20if%20(c%20%3D%3D%3D%20'%5C%5C')%20i%2B%2B%3B%20else%20if%20(c%20%3D%3D%3D%20'%22')%20inString%20%3D%20false%3B%20%7D%0A%20%20%20%20%20%20else%20if%20(c%20%3D%3D%3D%20'%22')%20inString%20%3D%20true%3B%0A%20%20%20%20%20%20else%20if%20(c%20%3D%3D%3D%20'%7B')%20depth%2B%2B%3B%0A%20%20%20%20%20%20else%20if%20(c%20%3D%3D%3D%20'%7D'%20%26%26%20--depth%20%3D%3D%3D%200)%20return%20JSON.parse(text.slice(start%2C%20i%20%2B%201))%3B%0A%20%20%20%20%7D%0A%20%20%20%20return%20null%3B%0A%20%20%7D%0A%0A%20%20const%20squash%20%3D%20text%20%3D%3E%20text.replace(%2F%5Cs%2B%2Fg%2C%20'%20').trim()%3B%0A%0A%20%20%2F%2F%20Reads%20a%20video's%20transcript%20on%20youtube.com%2C%20trying%20YouTube's%20caption%20files%2C%20then%20the%20endpoint%0A%20%20%2F%2F%20behind%20the%20%22Show%20transcript%22%20panel%2C%20then%20(for%20the%20video%20being%20watched)%20the%20panel%20itself.%0A%20%20async%20function%20youTubeTranscript(id%2C%20current)%20%7B%0A%20%20%20%20let%20player%20%3D%20null%3B%0A%20%20%20%20const%20livePlayer%20%3D%20document.getElementById('movie_player')%3B%0A%20%20%20%20if%20(current%20%26%26%20livePlayer%20%26%26%20typeof%20livePlayer.getPlayerResponse%20%3D%3D%3D%20'function')%20%7B%0A%20%20%20%20%20%20const%20response%20%3D%20livePlayer.getPlayerResponse()%3B%0A%20%20%20%20%20%20if%20(response%20%26%26%20response.videoDetails%20%26%26%20response.videoDetails.videoId%20%3D%3D%3D%20id)%20player%20%3D%20response%3B%0A%20%20%20%20%7D%0A%20%20%20%20let%20html%20%3D%20''%3B%0A%20%20%20%20async%20function%20watchPage()%20%7B%0A%20%20%20%20%20%20if%20(!html)%20%7B%0A%20%20%20%20%20%20%20%20const%20page%20%3D%20await%20fetch('%2Fwatch%3Fv%3D'%20%2B%20id%2C%20%7B%20credentials%3A%20'same-origin'%20%7D)%3B%0A%20%20%20%20%20%20%20%20if%20(!page.ok)%20throw%20Error('YouTube%20returned%20HTTP%20'%20%2B%20page.status)%3B%0A%20%20%20%20%20%20%20%20html%20%3D%20await%20page.text()%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20return%20html%3B%0A%20%20%20%20%7D%0A%20%20%20%20if%20(!player)%20player%20%3D%20jsonAfter(await%20watchPage()%2C%20'ytInitialPlayerResponse')%3B%0A%20%20%20%20const%20details%20%3D%20(player%20%26%26%20player.videoDetails)%20%7C%7C%20%7B%7D%3B%0A%20%20%20%20const%20attempts%20%3D%20%5B%0A%20%20%20%20%20%20()%20%3D%3E%20fromCaptionTrack(player)%2C%0A%20%20%20%20%20%20async%20()%20%3D%3E%20fromTranscriptEndpoint(await%20watchPage())%2C%0A%20%20%20%20%20%20()%20%3D%3E%20current%20%3F%20fromTranscriptPanel()%20%3A%20''%2C%0A%20%20%20%20%5D%3B%0A%20%20%20%20for%20(const%20attempt%20of%20attempts)%20%7B%0A%20%20%20%20%20%20try%20%7B%0A%20%20%20%20%20%20%20%20const%20transcript%20%3D%20await%20attempt()%3B%0A%20%20%20%20%20%20%20%20if%20(transcript%20%26%26%20transcript.length%20%3E%2040)%20%7B%0A%20%20%20%20%20%20%20%20%20%20let%20title%20%3D%20details.title%20%7C%7C%20''%2C%20channel%20%3D%20details.author%20%7C%7C%20''%3B%0A%20%20%20%20%20%20%20%20%20%20if%20(!title%20%7C%7C%20!channel)%20%7B%0A%20%20%20%20%20%20%20%20%20%20%20%20%2F%2F%20Some%20responses%20leave%20out%20videoDetails%3B%20the%20page's%20ytInitialData%20still%20names%20the%20video%20and%20channel.%0A%20%20%20%20%20%20%20%20%20%20%20%20const%20page%20%3D%20await%20watchPage().catch(()%20%3D%3E%20'')%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20const%20field%20%3D%20pattern%20%3D%3E%20%7B%20const%20m%20%3D%20page.match(pattern)%3B%20return%20m%20%3F%20JSON.parse('%22'%20%2B%20m%5B1%5D%20%2B%20'%22')%20%3A%20''%3B%20%7D%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20title%20%3D%20title%20%7C%7C%20field(%2F%22videoPrimaryInfoRenderer%22%3A%5C%7B%22title%22%3A%5C%7B%22runs%22%3A%5C%5B%5C%7B%22text%22%3A%22((%3F%3A%5B%5E%22%5C%5C%5D%7C%5C%5C.)*)%22%2F)%3B%0A%20%20%20%20%20%20%20%20%20%20%20%20channel%20%3D%20channel%20%7C%7C%20field(%2F%22videoOwnerRenderer%22%3A%5C%7B%5B%5Cs%5CS%5D%7B0%2C3000%7D%3F%22title%22%3A%5C%7B%22runs%22%3A%5C%5B%5C%7B%22text%22%3A%22((%3F%3A%5B%5E%22%5C%5C%5D%7C%5C%5C.)*)%22%2F)%3B%0A%20%20%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20%20%20return%20%7B%20title%2C%20channel%2C%20transcript%20%7D%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%7D%20catch%20(error)%20%7B%0A%20%20%20%20%20%20%20%20console.warn('Transcript%20attempt%20failed%3A'%2C%20error)%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%7D%0A%20%20%20%20throw%20Error('Could%20not%20find%20a%20transcript%20for%20this%20video.%20It%20may%20not%20have%20captions.')%3B%0A%20%20%7D%0A%0A%20%20async%20function%20fromCaptionTrack(player)%20%7B%0A%20%20%20%20const%20list%20%3D%20player%20%26%26%20player.captions%20%26%26%20player.captions.playerCaptionsTracklistRenderer%3B%0A%20%20%20%20const%20tracks%20%3D%20(list%20%26%26%20list.captionTracks)%20%7C%7C%20%5B%5D%3B%0A%20%20%20%20if%20(!tracks.length)%20return%20''%3B%0A%20%20%20%20%2F%2F%20Prefer%20the%20browser's%20language%2C%20and%20human-made%20captions%20over%20automatic%20ones.%0A%20%20%20%20const%20language%20%3D%20(navigator.language%20%7C%7C%20'en').split('-')%5B0%5D%3B%0A%20%20%20%20const%20rank%20%3D%20track%20%3D%3E%20((track.languageCode%20%7C%7C%20'').split('-')%5B0%5D%20%3D%3D%3D%20language%20%3F%200%20%3A%202)%20%2B%20(track.kind%20%3D%3D%3D%20'asr'%20%3F%201%20%3A%200)%3B%0A%20%20%20%20const%20track%20%3D%20tracks.slice().sort((a%2C%20b)%20%3D%3E%20rank(a)%20-%20rank(b))%5B0%5D%3B%0A%20%20%20%20const%20url%20%3D%20new%20URL(track.baseUrl%2C%20location.origin)%3B%0A%20%20%20%20url.searchParams.set('fmt'%2C%20'json3')%3B%0A%20%20%20%20const%20response%20%3D%20await%20fetch(url%2C%20%7B%20credentials%3A%20'same-origin'%20%7D)%3B%0A%20%20%20%20if%20(!response.ok)%20throw%20Error('Caption%20file%20returned%20HTTP%20'%20%2B%20response.status)%3B%0A%20%20%20%20const%20body%20%3D%20(await%20response.text()).trim()%3B%0A%20%20%20%20if%20(!body)%20return%20''%3B%0A%20%20%20%20if%20(body.startsWith('%7B'))%20%7B%0A%20%20%20%20%20%20return%20squash((JSON.parse(body).events%20%7C%7C%20%5B%5D).map(event%20%3D%3E%20(event.segs%20%7C%7C%20%5B%5D).map(seg%20%3D%3E%20seg.utf8%20%7C%7C%20'').join('')).join('%20'))%3B%0A%20%20%20%20%7D%0A%20%20%20%20%2F%2F%20Older%20XML%20caption%20format.%20Parsed%20by%20hand%20because%20YouTube's%20Trusted%20Types%20policy%20blocks%20DOMParser.%0A%20%20%20%20const%20entities%20%3D%20%7B%20amp%3A%20'%26'%2C%20lt%3A%20'%3C'%2C%20gt%3A%20'%3E'%2C%20quot%3A%20'%22'%2C%20apos%3A%20%22'%22%20%7D%3B%0A%20%20%20%20const%20decode%20%3D%20text%20%3D%3E%20text.replace(%2F%26(%23%5Cd%2B%7C%5Cw%2B)%3B%2Fg%2C%20(all%2C%20name)%20%3D%3E%20name%5B0%5D%20%3D%3D%3D%20'%23'%20%3F%20String.fromCharCode(name.slice(1))%20%3A%20entities%5Bname%5D%20%7C%7C%20all)%3B%0A%20%20%20%20return%20squash(Array.from(body.matchAll(%2F%3Ctext%5Cb%5B%5E%3E%5D*%3E(%5B%5Cs%5CS%5D*%3F)%3C%5C%2Ftext%3E%2Fg)%2C%20m%20%3D%3E%20decode(decode(m%5B1%5D))).join('%20'))%3B%0A%20%20%7D%0A%0A%20%20async%20function%20fromTranscriptEndpoint(page)%20%7B%0A%20%20%20%20const%20params%20%3D%20(page.match(%2F%22getTranscriptEndpoint%22%3A%5C%7B%22params%22%3A%22(%5B%5E%22%5D%2B)%22%2F)%20%7C%7C%20%5B%5D)%5B1%5D%3B%0A%20%20%20%20const%20config%20%3D%20name%20%3D%3E%20window.ytcfg%20%26%26%20typeof%20window.ytcfg.get%20%3D%3D%3D%20'function'%20%3F%20window.ytcfg.get(name)%20%3A%20undefined%3B%0A%20%20%20%20const%20context%20%3D%20config('INNERTUBE_CONTEXT')%20%7C%7C%20jsonAfter(page%2C%20'%22INNERTUBE_CONTEXT%22')%3B%0A%20%20%20%20if%20(!params%20%7C%7C%20!context)%20return%20''%3B%0A%20%20%20%20const%20response%20%3D%20await%20fetch('%2Fyoutubei%2Fv1%2Fget_transcript%3FprettyPrint%3Dfalse'%2C%20%7B%0A%20%20%20%20%20%20method%3A%20'POST'%2C%0A%20%20%20%20%20%20credentials%3A%20'same-origin'%2C%0A%20%20%20%20%20%20headers%3A%20%7B%20'Content-Type'%3A%20'application%2Fjson'%20%7D%2C%0A%20%20%20%20%20%20body%3A%20JSON.stringify(%7B%20context%2C%20params%20%7D)%2C%0A%20%20%20%20%7D)%3B%0A%20%20%20%20if%20(!response.ok)%20throw%20Error('Transcript%20endpoint%20returned%20HTTP%20'%20%2B%20response.status)%3B%0A%20%20%20%20const%20lines%20%3D%20%5B%5D%3B%0A%20%20%20%20(function%20collect(node)%20%7B%0A%20%20%20%20%20%20if%20(Array.isArray(node))%20return%20node.forEach(collect)%3B%0A%20%20%20%20%20%20if%20(!node%20%7C%7C%20typeof%20node%20!%3D%3D%20'object')%20return%3B%0A%20%20%20%20%20%20const%20segment%20%3D%20node.transcriptSegmentRenderer%20%7C%7C%20node.transcriptCueRenderer%3B%0A%20%20%20%20%20%20if%20(!segment)%20return%20Object.values(node).forEach(collect)%3B%0A%20%20%20%20%20%20const%20snippet%20%3D%20segment.snippet%20%7C%7C%20segment.cue%20%7C%7C%20%7B%7D%3B%0A%20%20%20%20%20%20lines.push(snippet.runs%20%3F%20snippet.runs.map(run%20%3D%3E%20run.text).join('')%20%3A%20snippet.simpleText%20%7C%7C%20'')%3B%0A%20%20%20%20%7D)(await%20response.json())%3B%0A%20%20%20%20return%20squash(lines.join('%20'))%3B%0A%20%20%7D%0A%0A%20%20%2F%2F%20Reads%20the%20transcript%20panel%20on%20the%20watch%20page%2C%20opening%20it%20first%20if%20needed.%0A%20%20async%20function%20fromTranscriptPanel()%20%7B%0A%20%20%20%20const%20selector%20%3D%20'ytd-transcript-segment-renderer%20.segment-text%2C%20transcript-segment-view-model%20.yt-core-attributed-string'%3B%0A%20%20%20%20const%20read%20%3D%20()%20%3D%3E%20squash(Array.from(document.querySelectorAll(selector)%2C%20node%20%3D%3E%20node.textContent).join('%20'))%3B%0A%20%20%20%20if%20(!read())%20%7B%0A%20%20%20%20%20%20const%20button%20%3D%20document.querySelector('ytd-video-description-transcript-section-renderer%20button%2C%20button%5Baria-label%3D%22Show%20transcript%22%5D')%3B%0A%20%20%20%20%20%20if%20(!button)%20return%20''%3B%0A%20%20%20%20%20%20button.click()%3B%0A%20%20%20%20%20%20for%20(let%20i%20%3D%200%3B%20i%20%3C%2020%20%26%26%20!read()%3B%20i%2B%2B)%20await%20new%20Promise(resolve%20%3D%3E%20setTimeout(resolve%2C%20250))%3B%0A%20%20%20%20%7D%0A%20%20%20%20return%20read()%3B%0A%20%20%7D%0A%0A%20%20async%20function%20summarize(href%2C%20current)%20%7B%0A%20%20%20%20const%20box%20%3D%20document.createElement('div')%3B%0A%20%20%20%20box.dataset.chatSummaryUi%20%3D%20''%3B%0A%20%20%20%20box.style.cssText%20%3D%20css%20%2B%20'top%3A12px%3Bright%3A12px%3Bwidth%3Amin(460px%2Ccalc(100vw%20-%2024px))%3Bmax-height%3A80vh%3Boverflow%3Aauto%3Bpadding%3A14px%3Bwhite-space%3Apre-wrap%3B'%3B%0A%20%20%20%20const%20close%20%3D%20document.createElement('button')%3B%0A%20%20%20%20close.textContent%20%3D%20'Close'%3B%0A%20%20%20%20close.style.cssText%20%3D%20'float%3Aright%3Bcursor%3Apointer%3Bmargin-left%3A12px%3B'%3B%0A%20%20%20%20close.addEventListener('click'%2C%20()%20%3D%3E%20box.remove())%3B%0A%20%20%20%20const%20message%20%3D%20document.createElement('div')%3B%0A%20%20%20%20message.textContent%20%3D%20'Reading%20page%E2%80%A6'%3B%0A%20%20%20%20box.append(close%2C%20message)%3B%0A%20%20%20%20document.body.append(box)%3B%0A%20%20%20%20const%20videoId%20%3D%20youTubeId(href)%3B%0A%20%20%20%20try%20%7B%0A%20%20%20%20%20%20const%20target%20%3D%20new%20URL(href%2C%20location.href)%3B%0A%20%20%20%20%20%20if%20(!%5B'http%3A'%2C%20'https%3A'%5D.includes(target.protocol))%20throw%20Error('Choose%20an%20HTTP%20or%20HTTPS%20web%20page.')%3B%0A%20%20%20%20%20%20if%20(videoId%20%26%26%20!onYouTube)%20%7B%0A%20%20%20%20%20%20%20%20%2F%2F%20Other%20sites%20may%20not%20read%20youtube.com%2C%20so%20the%20transcript%20is%20only%20reachable%20from%20YouTube%20itself.%0A%20%20%20%20%20%20%20%20message.textContent%20%3D%20'YouTube%20transcripts%20can%20only%20be%20read%20on%20youtube.com.%20Open%20the%20video%2C%20run%20this%20bookmarklet%20there%20and%20choose%20%E2%80%9CThis%20video%E2%80%9D.%5Cn%5Cn'%3B%0A%20%20%20%20%20%20%20%20const%20open%20%3D%20document.createElement('a')%3B%0A%20%20%20%20%20%20%20%20open.href%20%3D%20'https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D'%20%2B%20videoId%3B%0A%20%20%20%20%20%20%20%20open.target%20%3D%20'_blank'%3B%0A%20%20%20%20%20%20%20%20open.rel%20%3D%20'noopener'%3B%0A%20%20%20%20%20%20%20%20open.textContent%20%3D%20'Open%20the%20video'%3B%0A%20%20%20%20%20%20%20%20open.style.cssText%20%3D%20'color%3A%239cc3ff%3B'%3B%0A%20%20%20%20%20%20%20%20message.append(open)%3B%0A%20%20%20%20%20%20%20%20return%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20let%20prompt%2C%20text%2C%20what%3B%0A%20%20%20%20%20%20if%20(videoId)%20%7B%0A%20%20%20%20%20%20%20%20message.textContent%20%3D%20'Reading%20the%20video%20transcript%E2%80%A6'%3B%0A%20%20%20%20%20%20%20%20const%20video%20%3D%20await%20youTubeTranscript(videoId%2C%20current)%3B%0A%20%20%20%20%20%20%20%20what%20%3D%20'video%20transcript'%3B%0A%20%20%20%20%20%20%20%20text%20%3D%20video.transcript%3B%0A%20%20%20%20%20%20%20%20prompt%20%3D%20'Summarize%20this%20YouTube%20video%20in%20five%20concise%20bullets.%20Use%20only%20the%20supplied%20transcript.%20If%20it%20is%20incomplete%2C%20say%20so.%5Cn'%0A%20%20%20%20%20%20%20%20%20%20%2B%20(video.title%20%3F%20'Title%3A%20'%20%2B%20video.title%20%2B%20'%5Cn'%20%3A%20'')%20%2B%20(video.channel%20%3F%20'Channel%3A%20'%20%2B%20video.channel%20%2B%20'%5Cn'%20%3A%20'')%0A%20%20%20%20%20%20%20%20%20%20%2B%20'URL%3A%20https%3A%2F%2Fwww.youtube.com%2Fwatch%3Fv%3D'%20%2B%20videoId%20%2B%20'%5Cn%5CnTranscript%3A%5Cn'%3B%0A%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20if%20(current)%20%7B%0A%20%20%20%20%20%20%20%20%20%20text%20%3D%20markdownFrom(document)%3B%0A%20%20%20%20%20%20%20%20%7D%20else%20if%20(target.origin%20%3D%3D%3D%20location.origin)%20%7B%0A%20%20%20%20%20%20%20%20%20%20const%20page%20%3D%20await%20fetch(target.href%2C%20%7B%20credentials%3A%20'same-origin'%20%7D)%3B%0A%20%20%20%20%20%20%20%20%20%20if%20(!page.ok)%20throw%20Error('Page%20returned%20HTTP%20'%20%2B%20page.status)%3B%0A%20%20%20%20%20%20%20%20%20%20if%20(!page.headers.get('content-type')%3F.includes('text%2Fhtml'))%20throw%20Error('This%20link%20is%20not%20an%20HTML%20page.')%3B%0A%20%20%20%20%20%20%20%20%20%20text%20%3D%20markdownFrom(new%20DOMParser().parseFromString(await%20page.text()%2C%20'text%2Fhtml'))%3B%0A%20%20%20%20%20%20%20%20%7D%20else%20%7B%0A%20%20%20%20%20%20%20%20%20%20message.textContent%20%3D%20'Converting%20linked%20page%20to%20Markdown%20with%20Jina%20Reader%E2%80%A6'%3B%0A%20%20%20%20%20%20%20%20%20%20const%20page%20%3D%20await%20fetch('https%3A%2F%2Fr.jina.ai%2F'%20%2B%20target.href%2C%20%7B%20credentials%3A%20'omit'%20%7D)%3B%0A%20%20%20%20%20%20%20%20%20%20if%20(!page.ok)%20throw%20Error('Reader%20returned%20HTTP%20'%20%2B%20page.status)%3B%0A%20%20%20%20%20%20%20%20%20%20text%20%3D%20await%20page.text()%3B%0A%20%20%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20%20%20if%20(!text%20%7C%7C%20text.trim().length%20%3C%2080)%20throw%20Error('Could%20not%20extract%20enough%20page%20text.')%3B%0A%20%20%20%20%20%20%20%20what%20%3D%20'page'%3B%0A%20%20%20%20%20%20%20%20prompt%20%3D%20'Summarize%20this%20page%20in%20five%20concise%20bullets.%20Use%20only%20the%20supplied%20Markdown.%20If%20it%20is%20incomplete%2C%20say%20so.%5CnURL%3A%20'%20%2B%20target.href%20%2B%20'%5Cn%5Cn'%3B%0A%20%20%20%20%20%20%7D%0A%20%20%20%20%20%20const%20excerpt%20%3D%20text.slice(0%2C%2018000)%3B%0A%20%20%20%20%20%20message.textContent%20%3D%20'Summarizing%20the%20'%20%2B%20what%20%2B%20'%20with%20ch.at%E2%80%A6'%3B%0A%20%20%20%20%20%20const%20reply%20%3D%20await%20fetch('https%3A%2F%2Fch.at%2Fv1%2Fchat%2Fcompletions'%2C%20%7B%0A%20%20%20%20%20%20%20%20method%3A%20'POST'%2C%0A%20%20%20%20%20%20%20%20headers%3A%20%7B%20'Content-Type'%3A%20'application%2Fjson'%20%7D%2C%0A%20%20%20%20%20%20%20%20body%3A%20JSON.stringify(%7B%20messages%3A%20%5B%7B%20role%3A%20'user'%2C%20content%3A%20prompt%20%2B%20excerpt%20%7D%5D%20%7D)%0A%20%20%20%20%20%20%7D)%3B%0A%20%20%20%20%20%20if%20(!reply.ok)%20throw%20Error('ch.at%20returned%20HTTP%20'%20%2B%20reply.status)%3B%0A%20%20%20%20%20%20const%20json%20%3D%20await%20reply.json()%3B%0A%20%20%20%20%20%20message.textContent%20%3D%20json.choices%3F.%5B0%5D%3F.message%3F.content%20%7C%7C%20'No%20summary%20returned.'%3B%0A%20%20%20%20%20%20if%20(text.length%20%3E%20excerpt.length)%20message.textContent%20%2B%3D%20'%5Cn%5Cn(Only%20the%20beginning%20of%20this%20'%20%2B%20what%20%2B%20'%20was%20summarized.)'%3B%0A%20%20%20%20%7D%20catch%20(error)%20%7B%0A%20%20%20%20%20%20message.textContent%20%3D%20'Could%20not%20summarize%3A%20'%20%2B%20error.message%0A%20%20%20%20%20%20%20%20%2B%20(videoId%20%3F%20''%20%3A%20'%5Cn%5CnIf%20the%20browser%20blocked%20access%2C%20open%20the%20link%20and%20run%20this%20bookmarklet%20there%20using%20%E2%80%9CThis%20page%E2%80%9D.')%3B%0A%20%20%20%20%7D%0A%20%20%7D%0A%7D)()%3B">Summarize</a>
   <p class="hint">Drag this button to your bookmarks bar.</p>
 </div>
 <p>On a web page, click the bookmarklet, then click the link you want summarized. You can also choose “This page” in the small banner. Press Escape to cancel.</p>
-<p class="note">Links on the current site are fetched by your browser and converted to a compact Markdown-style document. Links on other sites go through <a href="https://jina.ai/reader/">Jina Reader</a> for extraction and Markdown conversion. The extracted text is sent to <a href="https://ch.at/">ch.at</a>. Do not use it for private pages. Sites can block bookmarklets or the requests they make; on those sites, open the link and try the “This page” option.</p>
+<p>On YouTube, choose “This video” to summarize the video you’re watching from its transcript, or click any video link to summarize that video instead. The video needs captions, either added by its creator or generated automatically by YouTube.</p>
+<p class="note">Links on the current site are fetched by your browser and converted to a compact Markdown-style document. Links on other sites go through <a href="https://jina.ai/reader/">Jina Reader</a> for extraction and Markdown conversion. The extracted text is sent to <a href="https://ch.at/">ch.at</a>. Do not use it for private pages. YouTube transcripts are read from YouTube by your browser and also sent to ch.at. This only works on youtube.com itself: other sites aren’t allowed to read YouTube pages, so for a YouTube link elsewhere the bookmarklet offers to open the video instead. Sites can block bookmarklets or the requests they make; on those sites, open the link and try the “This page” option.</p>
 </main>
-<script>
-const runBookmarklet = function () {
+<!-- Readable source of the bookmarklet. After editing it, run: python3 tools/build-bookmarklets.py -->
+<script id="bookmarklet-source" type="text/plain">
+(function () {
   if (document.getElementById('chat-summary-picker')) return;
 
   const css = 'position:fixed;z-index:2147483647;background:#172337;color:#fff;font:14px/1.45 system-ui,sans-serif;border:0;border-radius:10px;box-shadow:0 8px 32px #0006;';
+  const onYouTube = /(^|\.)youtube\.com$/.test(location.hostname);
   const banner = document.createElement('div');
   banner.id = 'chat-summary-picker';
   banner.style.cssText = css + 'top:12px;right:12px;max-width:min(420px,calc(100vw - 24px));padding:12px;';
   const hint = document.createElement('span');
   hint.textContent = 'Click a link to summarize · Esc cancels';
   const thisPage = document.createElement('button');
-  thisPage.textContent = 'This page';
+  thisPage.textContent = youTubeId(location.href) ? 'This video' : 'This page';
   const cancel = document.createElement('button');
   cancel.textContent = 'Cancel';
   for (const button of [thisPage, cancel]) {
@@ -90,6 +93,144 @@ const runBookmarklet = function () {
       .replace(/[ \t]+\n/g, '\n').replace(/\n{3,}/g, '\n\n').trim();
   }
 
+  // The 11-character video ID of a YouTube watch, Shorts, live, embed or youtu.be URL, or null.
+  function youTubeId(href) {
+    let url;
+    try { url = new URL(href, location.href); } catch { return null; }
+    const host = url.hostname.replace(/^(www|m|music)\./, '');
+    let id = null;
+    if (host === 'youtu.be') id = url.pathname.split('/')[1];
+    else if (host === 'youtube.com' || host === 'youtube-nocookie.com') {
+      id = url.pathname === '/watch' ? url.searchParams.get('v')
+        : (url.pathname.match(/^\/(?:shorts|live|embed|v)\/([^/?#]+)/) || [])[1];
+    }
+    return id && /^[\w-]{11}$/.test(id) ? id : null;
+  }
+
+  // Parses the JSON object literal that follows `name =` or `name:` in a page's source.
+  function jsonAfter(text, name) {
+    const match = new RegExp(name + '\\s*[=:]\\s*\\{').exec(text);
+    if (!match) return null;
+    const start = match.index + match[0].length - 1;
+    let depth = 0, inString = false;
+    for (let i = start; i < text.length; i++) {
+      const c = text[i];
+      if (inString) { if (c === '\\') i++; else if (c === '"') inString = false; }
+      else if (c === '"') inString = true;
+      else if (c === '{') depth++;
+      else if (c === '}' && --depth === 0) return JSON.parse(text.slice(start, i + 1));
+    }
+    return null;
+  }
+
+  const squash = text => text.replace(/\s+/g, ' ').trim();
+
+  // Reads a video's transcript on youtube.com, trying YouTube's caption files, then the endpoint
+  // behind the "Show transcript" panel, then (for the video being watched) the panel itself.
+  async function youTubeTranscript(id, current) {
+    let player = null;
+    const livePlayer = document.getElementById('movie_player');
+    if (current && livePlayer && typeof livePlayer.getPlayerResponse === 'function') {
+      const response = livePlayer.getPlayerResponse();
+      if (response && response.videoDetails && response.videoDetails.videoId === id) player = response;
+    }
+    let html = '';
+    async function watchPage() {
+      if (!html) {
+        const page = await fetch('/watch?v=' + id, { credentials: 'same-origin' });
+        if (!page.ok) throw Error('YouTube returned HTTP ' + page.status);
+        html = await page.text();
+      }
+      return html;
+    }
+    if (!player) player = jsonAfter(await watchPage(), 'ytInitialPlayerResponse');
+    const details = (player && player.videoDetails) || {};
+    const attempts = [
+      () => fromCaptionTrack(player),
+      async () => fromTranscriptEndpoint(await watchPage()),
+      () => current ? fromTranscriptPanel() : '',
+    ];
+    for (const attempt of attempts) {
+      try {
+        const transcript = await attempt();
+        if (transcript && transcript.length > 40) {
+          let title = details.title || '', channel = details.author || '';
+          if (!title || !channel) {
+            // Some responses leave out videoDetails; the page's ytInitialData still names the video and channel.
+            const page = await watchPage().catch(() => '');
+            const field = pattern => { const m = page.match(pattern); return m ? JSON.parse('"' + m[1] + '"') : ''; };
+            title = title || field(/"videoPrimaryInfoRenderer":\{"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/);
+            channel = channel || field(/"videoOwnerRenderer":\{[\s\S]{0,3000}?"title":\{"runs":\[\{"text":"((?:[^"\\]|\\.)*)"/);
+          }
+          return { title, channel, transcript };
+        }
+      } catch (error) {
+        console.warn('Transcript attempt failed:', error);
+      }
+    }
+    throw Error('Could not find a transcript for this video. It may not have captions.');
+  }
+
+  async function fromCaptionTrack(player) {
+    const list = player && player.captions && player.captions.playerCaptionsTracklistRenderer;
+    const tracks = (list && list.captionTracks) || [];
+    if (!tracks.length) return '';
+    // Prefer the browser's language, and human-made captions over automatic ones.
+    const language = (navigator.language || 'en').split('-')[0];
+    const rank = track => ((track.languageCode || '').split('-')[0] === language ? 0 : 2) + (track.kind === 'asr' ? 1 : 0);
+    const track = tracks.slice().sort((a, b) => rank(a) - rank(b))[0];
+    const url = new URL(track.baseUrl, location.origin);
+    url.searchParams.set('fmt', 'json3');
+    const response = await fetch(url, { credentials: 'same-origin' });
+    if (!response.ok) throw Error('Caption file returned HTTP ' + response.status);
+    const body = (await response.text()).trim();
+    if (!body) return '';
+    if (body.startsWith('{')) {
+      return squash((JSON.parse(body).events || []).map(event => (event.segs || []).map(seg => seg.utf8 || '').join('')).join(' '));
+    }
+    // Older XML caption format. Parsed by hand because YouTube's Trusted Types policy blocks DOMParser.
+    const entities = { amp: '&', lt: '<', gt: '>', quot: '"', apos: "'" };
+    const decode = text => text.replace(/&(#\d+|\w+);/g, (all, name) => name[0] === '#' ? String.fromCharCode(name.slice(1)) : entities[name] || all);
+    return squash(Array.from(body.matchAll(/<text\b[^>]*>([\s\S]*?)<\/text>/g), m => decode(decode(m[1]))).join(' '));
+  }
+
+  async function fromTranscriptEndpoint(page) {
+    const params = (page.match(/"getTranscriptEndpoint":\{"params":"([^"]+)"/) || [])[1];
+    const config = name => window.ytcfg && typeof window.ytcfg.get === 'function' ? window.ytcfg.get(name) : undefined;
+    const context = config('INNERTUBE_CONTEXT') || jsonAfter(page, '"INNERTUBE_CONTEXT"');
+    if (!params || !context) return '';
+    const response = await fetch('/youtubei/v1/get_transcript?prettyPrint=false', {
+      method: 'POST',
+      credentials: 'same-origin',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ context, params }),
+    });
+    if (!response.ok) throw Error('Transcript endpoint returned HTTP ' + response.status);
+    const lines = [];
+    (function collect(node) {
+      if (Array.isArray(node)) return node.forEach(collect);
+      if (!node || typeof node !== 'object') return;
+      const segment = node.transcriptSegmentRenderer || node.transcriptCueRenderer;
+      if (!segment) return Object.values(node).forEach(collect);
+      const snippet = segment.snippet || segment.cue || {};
+      lines.push(snippet.runs ? snippet.runs.map(run => run.text).join('') : snippet.simpleText || '');
+    })(await response.json());
+    return squash(lines.join(' '));
+  }
+
+  // Reads the transcript panel on the watch page, opening it first if needed.
+  async function fromTranscriptPanel() {
+    const selector = 'ytd-transcript-segment-renderer .segment-text, transcript-segment-view-model .yt-core-attributed-string';
+    const read = () => squash(Array.from(document.querySelectorAll(selector), node => node.textContent).join(' '));
+    if (!read()) {
+      const button = document.querySelector('ytd-video-description-transcript-section-renderer button, button[aria-label="Show transcript"]');
+      if (!button) return '';
+      button.click();
+      for (let i = 0; i < 20 && !read(); i++) await new Promise(resolve => setTimeout(resolve, 250));
+    }
+    return read();
+  }
+
   async function summarize(href, current) {
     const box = document.createElement('div');
     box.dataset.chatSummaryUi = '';
@@ -102,40 +243,65 @@ const runBookmarklet = function () {
     message.textContent = 'Reading page…';
     box.append(close, message);
     document.body.append(box);
+    const videoId = youTubeId(href);
     try {
       const target = new URL(href, location.href);
       if (!['http:', 'https:'].includes(target.protocol)) throw Error('Choose an HTTP or HTTPS web page.');
-      let markdown;
-      if (current) {
-        markdown = markdownFrom(document);
-      } else if (target.origin === location.origin) {
-        const page = await fetch(target.href, { credentials: 'same-origin' });
-        if (!page.ok) throw Error('Page returned HTTP ' + page.status);
-        if (!page.headers.get('content-type')?.includes('text/html')) throw Error('This link is not an HTML page.');
-        markdown = markdownFrom(new DOMParser().parseFromString(await page.text(), 'text/html'));
-      } else {
-        message.textContent = 'Converting linked page to Markdown with Jina Reader…';
-        const page = await fetch('https://r.jina.ai/' + target.href, { credentials: 'omit' });
-        if (!page.ok) throw Error('Reader returned HTTP ' + page.status);
-        markdown = await page.text();
+      if (videoId && !onYouTube) {
+        // Other sites may not read youtube.com, so the transcript is only reachable from YouTube itself.
+        message.textContent = 'YouTube transcripts can only be read on youtube.com. Open the video, run this bookmarklet there and choose “This video”.\n\n';
+        const open = document.createElement('a');
+        open.href = 'https://www.youtube.com/watch?v=' + videoId;
+        open.target = '_blank';
+        open.rel = 'noopener';
+        open.textContent = 'Open the video';
+        open.style.cssText = 'color:#9cc3ff;';
+        message.append(open);
+        return;
       }
-      if (!markdown || markdown.trim().length < 80) throw Error('Could not extract enough page text.');
-      const excerpt = markdown.slice(0, 18000);
-      message.textContent = 'Summarizing extracted text with ch.at…';
+      let prompt, text, what;
+      if (videoId) {
+        message.textContent = 'Reading the video transcript…';
+        const video = await youTubeTranscript(videoId, current);
+        what = 'video transcript';
+        text = video.transcript;
+        prompt = 'Summarize this YouTube video in five concise bullets. Use only the supplied transcript. If it is incomplete, say so.\n'
+          + (video.title ? 'Title: ' + video.title + '\n' : '') + (video.channel ? 'Channel: ' + video.channel + '\n' : '')
+          + 'URL: https://www.youtube.com/watch?v=' + videoId + '\n\nTranscript:\n';
+      } else {
+        if (current) {
+          text = markdownFrom(document);
+        } else if (target.origin === location.origin) {
+          const page = await fetch(target.href, { credentials: 'same-origin' });
+          if (!page.ok) throw Error('Page returned HTTP ' + page.status);
+          if (!page.headers.get('content-type')?.includes('text/html')) throw Error('This link is not an HTML page.');
+          text = markdownFrom(new DOMParser().parseFromString(await page.text(), 'text/html'));
+        } else {
+          message.textContent = 'Converting linked page to Markdown with Jina Reader…';
+          const page = await fetch('https://r.jina.ai/' + target.href, { credentials: 'omit' });
+          if (!page.ok) throw Error('Reader returned HTTP ' + page.status);
+          text = await page.text();
+        }
+        if (!text || text.trim().length < 80) throw Error('Could not extract enough page text.');
+        what = 'page';
+        prompt = 'Summarize this page in five concise bullets. Use only the supplied Markdown. If it is incomplete, say so.\nURL: ' + target.href + '\n\n';
+      }
+      const excerpt = text.slice(0, 18000);
+      message.textContent = 'Summarizing the ' + what + ' with ch.at…';
       const reply = await fetch('https://ch.at/v1/chat/completions', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ messages: [{ role: 'user', content:
-          'Summarize this page in five concise bullets. Use only the supplied Markdown. If it is incomplete, say so.\nURL: ' + target.href + '\n\n' + excerpt }] })
+        body: JSON.stringify({ messages: [{ role: 'user', content: prompt + excerpt }] })
       });
       if (!reply.ok) throw Error('ch.at returned HTTP ' + reply.status);
       const json = await reply.json();
       message.textContent = json.choices?.[0]?.message?.content || 'No summary returned.';
-      if (markdown.length > excerpt.length) message.textContent += '\n\n(Only the beginning of this page was summarized.)';
+      if (text.length > excerpt.length) message.textContent += '\n\n(Only the beginning of this ' + what + ' was summarized.)';
     } catch (error) {
-      message.textContent = 'Could not summarize: ' + error.message + '\n\nIf the browser blocked access, open the link and run this bookmarklet there using “This page”.';
+      message.textContent = 'Could not summarize: ' + error.message
+        + (videoId ? '' : '\n\nIf the browser blocked access, open the link and run this bookmarklet there using “This page”.');
     }
   }
-};
+})();
 </script>
 </html>
