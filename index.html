@@ -8,6 +8,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Bookmarklets</title>
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 <style>
   #list { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--rule); }
@@ -25,6 +26,9 @@
   footer { margin-top: 40px; font-size: 15px; color: var(--muted); }
   footer a { color: inherit; }
   .download { margin: 24px 0 0; font-size: 15px; color: var(--muted); }
+  .actions { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 24px; }
+  .pick { display: inline-flex; align-items: center; gap: 6px; font-size: 15px; color: var(--muted); cursor: pointer; }
+  .pick input { margin: 0; accent-color: var(--accent); }
 </style>
 </head>
 <body>
@@ -34,7 +38,7 @@
 
   <p id="status" class="status" role="status">Loading…</p>
   <ul id="list"></ul>
-  <p id="download" class="download" hidden><a download="bookmarklets.html">Download all as a bookmarks file</a>. Import it from your browser's bookmark manager to add every bookmarklet at once, each with its own icon. They may arrive in a folder; if so, drag them onto your bookmarks toolbar. Some browsers keep their generic icon.</p>
+  <p id="download" class="download" hidden><a download="bookmarklets.html"></a>. Import it from your browser's bookmark manager to add the ticked bookmarklets at once, each with its own icon. They may arrive in a folder; if so, drag them onto your bookmarks toolbar. Some browsers keep their generic icon.</p>
   <noscript><p>This list needs JavaScript. The installers are in the <a href="https://github.com/galkatzh/bookmarklets">repository</a>.</p></noscript>
 
   <footer>Source: <a href="https://github.com/galkatzh/bookmarklets">github.com/galkatzh/bookmarklets</a></footer>
@@ -62,6 +66,7 @@
       url, name,
       label: button?.textContent.trim() || name,
       code: code.startsWith('javascript:') ? code : '',
+      selected: true,
       description: meta('description'),
       worksOn: meta('bookmarklet:works-on'),
       data: meta('bookmarklet:data'),
@@ -82,7 +87,11 @@
       el('h2', {}, el('a', { href: b.url, textContent: b.name })),
       b.description && el('p', { textContent: b.description }),
       details.length && el('dl', { className: 'meta' }, ...details),
-      el('a', { className: 'install', href: b.url, textContent: 'Install →' }));
+      el('div', { className: 'actions' },
+        el('a', { className: 'install', href: b.url, textContent: 'Install →' }),
+        b.code && el('label', { className: 'pick' },
+          el('input', { type: 'checkbox', checked: b.selected, onchange: e => { b.selected = e.target.checked; updateDownload(); } }),
+          'Include in download')));
   }
 
   // A 32×32 monogram in the site's accent color, used as the bookmark's icon.
@@ -126,6 +135,23 @@
     ].join('\n');
   }
 
+  let installers = [];
+  let downloadUrl;
+
+  // Rebuild the bookmarks file from the ticked bookmarklets.
+  function updateDownload() {
+    const link = document.querySelector('#download a');
+    const available = installers.filter(b => b.code);
+    const chosen = available.filter(b => b.selected);
+    if (downloadUrl) URL.revokeObjectURL(downloadUrl);
+    downloadUrl = chosen.length ? URL.createObjectURL(new Blob([bookmarksFile(chosen)], { type: 'text/html' })) : null;
+    if (downloadUrl) link.href = downloadUrl;
+    else link.removeAttribute('href');
+    link.textContent = !chosen.length ? 'Tick at least one bookmarklet to download'
+      : chosen.length === available.length ? 'Download all as a bookmarks file'
+      : `Download ${chosen.length} of ${available.length} as a bookmarks file`;
+  }
+
   async function main() {
     let paths;
     try {
@@ -136,15 +162,14 @@
     }
     const results = await Promise.allSettled(paths.map(readInstaller));
     for (const r of results) if (r.status === 'rejected') console.warn('Skipped installer:', r.reason);
-    const installers = results
+    installers = results
       .map(r => r.status === 'fulfilled' && r.value)
       .filter(Boolean)
       .sort((a, b) => a.name.localeCompare(b.name));
     list.append(...installers.map(card));
     if (installers.some(b => b.code)) {
-      const download = document.getElementById('download');
-      download.querySelector('a').href = URL.createObjectURL(new Blob([bookmarksFile(installers)], { type: 'text/html' }));
-      download.hidden = false;
+      updateDownload();
+      document.getElementById('download').hidden = false;
     }
     if (installers.length) status.remove();
     else status.textContent = 'No bookmarklets found.';
