@@ -28,10 +28,11 @@ Values are plain text. Cards are sorted by name.
 
 ## Page layout
 
-All pages share `style.css`, a minimal layout with warm colors and automatic dark mode. Link it in
-the installer's `<head>` and use this structure for the body:
+All pages share `style.css`, a minimal layout with warm colors and automatic dark mode, and the
+`favicon.svg` tab icon. Link both in the installer's `<head>` and use this structure for the body:
 
 ```html
+<link rel="icon" href="favicon.svg" type="image/svg+xml">
 <link rel="stylesheet" href="style.css">
 …
 <main>
