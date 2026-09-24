@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 32 32">
+  <!-- A bookmark ribbon with a lightning bolt: a bookmark that runs something. -->
+  <path d="M7 3.5A2.5 2.5 0 0 1 9.5 1h13A2.5 2.5 0 0 1 25 3.5V30l-9-6.5L7 30z" fill="#b5532b"/>
+  <path d="M17.5 5 11 15h4.5l-1.5 7.5L21 12h-4.5z" fill="#faf6ef"/>
+</svg>
