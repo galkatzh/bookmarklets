@@ -58,6 +58,21 @@ Page-specific rules can go in a small `<style>` block after the stylesheet link.
 The drag button's `href` must hold the full `javascript:` URL in the HTML itself, not one set by a
 script. The index reads it from there to build the bookmarks file.
 
+## Editing a bookmarklet's code
+
+An installer can keep its bookmarklet's readable code in a block that doesn't run on the page:
+
+```html
+<script id="bookmarklet-source" type="text/plain">
+(function () {
+  …
+})();
+</script>
+```
+
+After editing it, run `python3 tools/build-bookmarklets.py` from the repo root. It encodes the code
+and writes it into the drag button's `href`. The summarizer keeps its source this way.
+
 ## Bookmarks file
 
 The index offers a bookmarks-file download. Each bookmarklet on the index has an "Include in
