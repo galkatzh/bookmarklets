@@ -51,7 +51,12 @@ All pages share `style.css`, a minimal layout with warm colors and automatic dar
 
   <p class="note">What data leaves the browser, and any caveats.</p>
 </main>
+<script src="installer.js"></script>
 ```
+
+`installer.js` adds a "Copy code" button under the drag button, with instructions for adding the
+bookmarklet on iPhone and iPad, where links can't be dragged to a bookmarks bar. It also shows a hint
+instead of running the bookmarklet when its button is clicked on the installer page.
 
 Page-specific rules can go in a small `<style>` block after the stylesheet link.
 

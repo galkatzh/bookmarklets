@@ -30,5 +30,7 @@ details p { margin: 12px 0 0; }
 .bookmarklet { display: inline-block; padding: 10px 18px; border-radius: 6px; background: var(--accent); color: var(--on-accent); text-decoration: none; cursor: grab; }
 .bookmarklet:active { cursor: grabbing; }
 .hint { margin: 10px 0 0; color: var(--muted); font-size: 15px; }
+.copy-row { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 16px 0 0; }
+.copy-status { color: var(--muted); font-size: 15px; }
 button { padding: 6px 12px; border: 1px solid var(--rule); border-radius: 6px; background: transparent; color: var(--text); font: inherit; font-size: 15px; cursor: pointer; }
 button:hover { border-color: var(--accent); color: var(--accent); }

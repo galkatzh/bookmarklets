@@ -13,7 +13,6 @@
 <style>
   .secondary { display: flex; flex-wrap: wrap; gap: 8px; }
   #status { min-height: 1.6em; margin: 10px 0 0; color: var(--accent); font-size: 15px; }
-  textarea { position: fixed; left: -10000px; top: -10000px; }
 </style>
 </head>
 <body>
@@ -35,39 +34,20 @@
   </ol>
 
   <div class="secondary">
-    <button id="copy" type="button">Copy bookmarklet URL</button>
     <button id="details" type="button">Show size</button>
   </div>
   <p id="status" role="status" aria-live="polite"></p>
 
   <details>
     <summary>Manual installation and privacy</summary>
-    <p>If drag-and-drop is unavailable, create a bookmark manually and paste the copied URL into its address field. The bookmarklet runs only when you click it. It reads the currently open conversation from ChatGPT’s own authenticated endpoint and does not send it anywhere else.</p>
+    <p>If drag-and-drop is unavailable, create a bookmark manually and paste the code from “Copy code” into its address field. The bookmarklet runs only when you click it. It reads the currently open conversation from ChatGPT’s own authenticated endpoint and does not send it anywhere else.</p>
   </details>
 </main>
-<textarea id="fallback" aria-hidden="true"></textarea>
+<script src="installer.js"></script>
 <script>
   const installLink = document.getElementById('install-link');
   const bookmarklet = installLink.getAttribute('href');
   const status = document.getElementById('status');
-  installLink.addEventListener('click', event => {
-    event.preventDefault();
-    status.textContent = 'Drag this button to the bookmarks bar; clicking it on this installer page will not install it.';
-  });
-
-  document.getElementById('copy').addEventListener('click', async () => {
-    try {
-      await navigator.clipboard.writeText(bookmarklet);
-      status.textContent = 'Bookmarklet URL copied.';
-    } catch {
-      const fallback = document.getElementById('fallback');
-      fallback.value = bookmarklet;
-      fallback.select();
-      document.execCommand('copy');
-      status.textContent = 'Bookmarklet URL copied.';
-    }
-  });
-
   document.getElementById('details').addEventListener('click', () => {
     status.textContent = new Blob([bookmarklet]).size.toLocaleString() + ' bytes; fully self-contained.';
   });

@@ -25,6 +25,7 @@
 <p>Long transcripts are split into parts of up to 128,000 characters, summarized one by one, and combined. The question box appears when the source is short enough to send in full.</p>
 <p class="note">Links on the current site are converted to Markdown in your browser. Links to other sites go through <a href="https://jina.ai/reader/">Jina Reader</a>. For YouTube, the bookmarklet uses the captions on the video’s page when it can, and otherwise the <a href="https://youtube-transcript.ai/youtube-transcript-api">YouTube Transcript API</a>, so videos need captions. The extracted text is sent to <a href="https://ch.at/">ch.at</a>. Don’t use it on private pages; some sites’ security settings block bookmarklets or the requests they make.</p>
 </main>
+<script src="installer.js"></script>
 <!-- Readable source of the bookmarklet. After editing it, run: python3 tools/build-bookmarklets.py -->
 <script id="bookmarklet-source" type="text/plain">
 (function () {
