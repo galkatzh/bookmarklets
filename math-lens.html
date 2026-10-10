@@ -61,7 +61,10 @@ button, .btn { font: 500 14px/1.2 var(--sans); }
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 /* ---------- header ---------- */
-header.top { padding-block: 3.2rem 2.2rem; display: grid; gap: 1.1rem; max-width: 46rem; }
+header.top { padding-block: 1.6rem 2.2rem; display: grid; gap: 1.1rem; max-width: 46rem; }
+.back { margin: 0; padding-top: 2.4rem; font: 15px/1.4 var(--sans); }
+.back a { color: var(--muted); text-decoration: none; }
+.back a:hover { color: var(--accent); }
 h1 {
   font: 600 3.1rem/1 var(--serif); letter-spacing: -.01em; margin: 0; text-wrap: balance;
 }
@@ -188,6 +191,7 @@ footer { margin-top: 3rem; font-size: 13px; color: var(--muted); }
 <body>
 
 <div class="wrap">
+  <p class="back"><a href="./">← All bookmarklets</a></p>
   <header class="top">
     <h1>Math Lens</h1>
     <p class="lede"><b>Definition 1.</b> A <i>math lens</i> is a bookmarklet for the HTML versions of arXiv papers. Hover a symbol and it shows the sentence where that symbol is defined. Hover a link to a theorem, equation or citation and it shows what the link points to.</p>
