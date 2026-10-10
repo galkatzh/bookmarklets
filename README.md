@@ -6,6 +6,28 @@ Each bookmarklet has its own installer page: an `.html` file in this folder with
 link you drag to the bookmarks bar. The index page (`index.html`) finds the installers and lists
 them on its own, so adding a bookmarklet never means editing the index.
 
+## Bookmarklets
+
+| Bookmarklet | Installer | What it does |
+| --- | --- | --- |
+| ChatGPT Tree Explorer | `chatgpt-tree-explorer.html` | Shows every branch of a ChatGPT conversation in a side panel and exports it. |
+| Gmail LaTeX | `gmail-latex-bookmarklet.html` | Turns LaTeX in a Gmail draft into equation images. |
+| Summarize links and videos | `pick-link-summary-bookmarklet.html` | Summarizes a clicked link, or a YouTube video from its transcript. |
+| SymboLENS | `symbolens.html` | On an arXiv HTML paper, shows where a hovered symbol is defined and previews linked theorems, equations and citations. |
+
+### SymboLENS
+
+SymboLENS works on the HTML versions of arXiv papers (`arxiv.org/html/<id>`) and on
+`ar5iv.labs.arxiv.org`. Clicking the bookmark again turns it off. It also comes as a userscript
+that starts on every such paper. Everything runs in the browser and the paper is never sent anywhere.
+
+Its installer doesn't follow the page layout below. It keeps its own layout, with a demo paper the
+lens runs on, its own copy buttons for the bookmarklet and the userscript, and no `installer.js`.
+Its colors match `style.css` but are set in the page itself. The page holds the code three times:
+minified in the drag button's `href` and in the script that runs the lens on the demo paper, and
+readable in the userscript string. Change all three together when updating it. The code still uses the
+`window.MathLens` global and the `mathLens.contextLevel` storage key from its earlier name.
+
 ## Adding a bookmarklet
 
 Add an installer page to the root of the repo. Put these tags in its `<head>`:
